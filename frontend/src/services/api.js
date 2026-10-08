@@ -25,6 +25,16 @@ export const dashboardApi = {
   getSummary: (department) => api.get('/dashboard/summary', { params: { department } }),
 };
 
+export const evidenceApi = {
+  getEvidence: (params) => api.get('/evidence', { params }),
+  getIntegrity: (department) => api.get('/evidence/integrity', { params: { department } }),
+  getById: (id) => api.get(`/evidence/${id}`),
+  verifyById: (id) => api.get(`/evidence/${id}/verify`),
+  getHistory: (id) => api.get(`/evidence/${id}/history`),
+  createEvidence: (data) => api.post('/evidence', data),
+  manualVerify: (id, data) => api.post(`/evidence/${id}/manual-verify`, data),
+};
+
 export const metricsApi = {
   getMetrics: (department, limit = 50) => api.get('/metrics', { params: { department, limit } }),
   createMetric: (data) => api.post('/metrics', data),

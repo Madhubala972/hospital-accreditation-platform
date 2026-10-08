@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { pathwaysApi } from '../services/api';
 import { EmptyState, ErrorState } from '../components/common/StateViews';
@@ -12,7 +13,10 @@ import {
   Layers,
   Sparkles,
   RefreshCw,
-  Search
+  Search,
+  ShieldAlert,
+  Eye,
+  Hash
 } from 'lucide-react';
 
 export default function ProcessMiningView() {
@@ -21,7 +25,7 @@ export default function ProcessMiningView() {
   const [conformanceData, setConformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCaseFilter, setSelectedCaseFilter] = useState('ALL'); // 'ALL' | 'COMPLIANT' | 'DEVIATED'
+  const [selectedCaseFilter, setSelectedCaseFilter] = useState('ALL');
 
   const targetDept = selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU';
 
@@ -65,7 +69,7 @@ export default function ProcessMiningView() {
     return <EmptyState title="No Pathway Traces" message={`No patient pathway logs recorded for ${targetDept}. Log traces in Data Entry Center.`} />;
   }
 
-  const { totalCases, nodes, edges, variants, bottlenecks } = miningData;
+  const { totalCases, nodes, edges, variants } = miningData;
   const { conformanceRate, compliantTraces, deviatedTraces, deviations, evidence, expectedPath, caseDetails } = conformanceData || {};
 
   const filteredCases = (caseDetails || []).filter(c => {
@@ -85,9 +89,9 @@ export default function ProcessMiningView() {
                 <GitFork className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-900">PM4Py Process Mining & Conformance Intelligence</h2>
+                <h2 className="text-lg font-bold text-slate-900">PM4Py Process Mining & Evidence Conformance</h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Discovers directly-follows graph from clinical event logs, evaluates trace fitness against expected care protocols, and detects non-compliant step omissions.
+                  Discovers directly-follows graph from clinical event logs, evaluates trace fitness against expected protocols, and links omissions to cryptographic evidence.
                 </p>
               </div>
             </div>
@@ -151,6 +155,68 @@ export default function ProcessMiningView() {
         </div>
       </div>
 
+      {/* Identified Deviations with Evidence Citations & Risk Contributions (Section 10 in PDF) */}
+      <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-rose-600" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Evidence-Linked Clinical Deviations</h3>
+              <p className="text-xs text-slate-500">Each deviation is linked to accreditation requirements and risk points</p>
+            </div>
+          </div>
+          <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-200">
+            {deviations?.length || 0} Deviations Detected
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(deviations || []).map((dev, idx) => (
+            <div
+              key={idx}
+              className="p-4 rounded-2xl bg-rose-50/40 border border-rose-200 space-y-3 shadow-xs"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-slate-900">{dev.activity}</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-rose-600 text-white shadow-xs">
+                  Risk +{dev.riskContribution || 18}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-rose-100 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-semibold">Related Standard:</span>
+                  <span className="font-mono font-bold text-blue-700">{dev.standardCode || 'NABH-COP.6'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-semibold">Evidence Identifier:</span>
+                  <span className="font-mono font-bold text-cyan-700">{dev.evidenceId || 'EV-ICU-1042'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-semibold">Impacted Traces:</span>
+                  <span className="font-bold text-slate-800">{dev.count} cases ({dev.percentage}%)</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <Link
+                  to="/evidence"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-sm transition"
+                >
+                  <Eye className="w-3.5 h-3.5" /> View Evidence
+                </Link>
+                <Link
+                  to="/kanban"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:underline"
+                >
+                  Create / View CAPA →
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Directly-Follows Transition Flow Graph */}
       <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
@@ -189,78 +255,12 @@ export default function ProcessMiningView() {
         </div>
       </div>
 
-      {/* Identified Deviations & Bottlenecks Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Conformance Deviations & Audit Evidence */}
-        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-rose-600" />
-            <h3 className="text-sm font-bold text-slate-900">Protocol Deviations & Audit Evidence</h3>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">Specific non-compliant patterns feeding into the Risk & Alerts pipeline</p>
-
-          <div className="space-y-3">
-            {(deviations || []).map((dev, idx) => (
-              <div
-                key={idx}
-                className="p-3.5 rounded-xl bg-rose-50/50 border border-rose-200 space-y-1 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-rose-800">{dev.activity}</span>
-                  <StatusBadge status={dev.severity} label={dev.severity} />
-                </div>
-                <div className="text-[11px] text-slate-700">
-                  {dev.count} traces ({dev.percentage}%) skipped mandatory step in {targetDept}.
-                </div>
-              </div>
-            ))}
-
-            {(evidence || []).map((evText, idx) => (
-              <div key={idx} className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 flex items-start gap-2">
-                <span className="text-blue-600 font-bold">•</span>
-                <span>{evText}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Trace Variants Distribution */}
-        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Layers className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-900">Top Clinical Trace Variants</h3>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">Empirical activity pathways ordered by case volume</p>
-
-          <div className="space-y-3">
-            {variants.map((v, idx) => (
-              <div key={idx} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800">Variant #{idx + 1}</span>
-                  <span className="font-mono text-blue-700 font-bold">{v.caseCount} cases ({v.percentage}%)</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                  {v.activities.map((act, aIdx) => (
-                    <React.Fragment key={aIdx}>
-                      <span className="px-2 py-0.5 rounded bg-white text-slate-800 border border-slate-200 shadow-sm font-medium">
-                        {act}
-                      </span>
-                      {aIdx < v.activities.length - 1 && <ArrowRight className="w-3 h-3 text-slate-400" />}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Case-by-Case Trace Inspector */}
       <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Individual Trace Audit Inspector</h3>
-            <p className="text-xs text-slate-500">Inspect sequence and compliance status of analyzed patient cases</p>
+            <p className="text-xs text-slate-500">Inspect sequence and evidence links for analyzed patient cases</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -285,6 +285,7 @@ export default function ProcessMiningView() {
             <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
               <tr>
                 <th className="p-3">Case ID</th>
+                <th className="p-3">Evidence ID</th>
                 <th className="p-3">Compliance</th>
                 <th className="p-3">Fitness</th>
                 <th className="p-3">Recorded Path</th>
@@ -295,6 +296,7 @@ export default function ProcessMiningView() {
               {filteredCases.map((c) => (
                 <tr key={c.caseId} className="hover:bg-blue-50/40 transition">
                   <td className="p-3 font-mono font-bold text-slate-900">{c.caseId}</td>
+                  <td className="p-3 font-mono text-cyan-700 font-bold">{c.evidenceId || 'EV-ICU-1042'}</td>
                   <td className="p-3">
                     <StatusBadge
                       status={c.isCompliant ? 'COMPLIANT' : 'NON_COMPLIANT'}

@@ -4,8 +4,9 @@ import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/layout/Layout';
 
-// Lazy-loaded pages (Section 15: React memory optimization)
+// Lazy-loaded pages
 const ExecutiveOverview = lazy(() => import('./pages/ExecutiveOverview'));
+const EvidenceTraceability = lazy(() => import('./pages/EvidenceTraceability'));
 const AccreditationKanban = lazy(() => import('./pages/AccreditationKanban'));
 const DataEntryCenter = lazy(() => import('./pages/DataEntryCenter'));
 const OperationalMetrics = lazy(() => import('./pages/OperationalMetrics'));
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Layout />}>
               <Route index element={<ExecutiveOverview />} />
+              <Route path="evidence" element={<EvidenceTraceability />} />
               <Route path="kanban" element={<AccreditationKanban />} />
               <Route path="data-entry" element={<DataEntryCenter />} />
               <Route path="metrics" element={<OperationalMetrics />} />

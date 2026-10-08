@@ -24,6 +24,19 @@ const CapaPlanSchema = new mongoose.Schema({
     default: 'HIGH' 
   },
   rootCauseAnalysis: { type: String, default: '' },
+  
+  // Closed-loop verification & simulation parameters (Section 12 & 14)
+  predictedImpact: { type: Number, default: 0 }, // e.g. 30.8 (%)
+  actualImpact: { type: Number, default: 0 }, // e.g. 28.2 (%)
+  predictionAccuracy: { type: Number, default: 0 }, // e.g. 91.6 (%)
+  verificationStatus: { 
+    type: String, 
+    enum: ['PENDING_VERIFICATION', 'VERIFIED_EFFECTIVE', 'VERIFICATION_FAILED'],
+    default: 'PENDING_VERIFICATION' 
+  },
+  supportingEvidenceIds: [{ type: String }],
+  simulationId: { type: String, default: null },
+
   beforeMetrics: {
     riskScore: { type: Number, default: 0 },
     complianceRate: { type: Number, default: 0 },
@@ -48,5 +61,6 @@ const CapaPlanSchema = new mongoose.Schema({
 // Index required by architecture specification
 CapaPlanSchema.index({ department: 1, status: 1 });
 CapaPlanSchema.index({ status: 1, deadline: 1 });
+CapaPlanSchema.index({ verificationStatus: 1 });
 
 module.exports = mongoose.model('CapaPlan', CapaPlanSchema);

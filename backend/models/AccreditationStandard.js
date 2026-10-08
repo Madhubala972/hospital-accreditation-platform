@@ -19,7 +19,17 @@ const AccreditationStandardSchema = new mongoose.Schema({
   metricTargetField: { type: String, required: true }, // Field in HospitalMetric e.g. "pathwayConformance"
   severity: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'HIGH' },
   ruleDescription: { type: String, required: true },
-  regulatoryBody: { type: String, default: 'NABH 5th Edition' }
+  regulatoryBody: { type: String, default: 'NABH 5th Edition' },
+  // Evidence & Provenance specification
+  evidenceRequirements: { 
+    type: String, 
+    default: 'Mandatory cryptographic trace log verification and metric evidence' 
+  },
+  requiredEvidenceTypes: [{ 
+    type: String, 
+    enum: ['METRIC', 'PATHWAY_TRACE', 'INCIDENT', 'DOCUMENT', 'AUDIT_OBSERVATION', 'CLINICAL_VERIFICATION'],
+    default: ['METRIC', 'PATHWAY_TRACE']
+  }]
 }, {
   timestamps: true
 });

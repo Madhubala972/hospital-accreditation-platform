@@ -3,7 +3,20 @@ const capaService = require('../services/capaService');
 
 exports.createCapa = async (req, res) => {
   try {
-    const { problem, department, action, responsiblePerson, deadline, alertId, standardCode, priority } = req.body;
+    const { 
+      problem, 
+      department, 
+      action, 
+      responsiblePerson, 
+      deadline, 
+      alertId, 
+      standardCode, 
+      priority,
+      rootCauseAnalysis,
+      predictedImpact,
+      supportingEvidenceIds,
+      simulationId
+    } = req.body;
 
     if (!problem || !department || !action || !responsiblePerson || !deadline) {
       return res.status(400).json({
@@ -20,12 +33,16 @@ exports.createCapa = async (req, res) => {
       deadline,
       alertId,
       standardCode,
-      priority
+      priority,
+      rootCauseAnalysis,
+      predictedImpact,
+      supportingEvidenceIds,
+      simulationId
     });
 
     res.status(201).json({
       status: 'success',
-      message: 'CAPA plan created successfully.',
+      message: 'CAPA plan created successfully with closed-loop simulation linkage.',
       data: capa
     });
   } catch (error) {
@@ -36,7 +53,7 @@ exports.createCapa = async (req, res) => {
 exports.updateCapaStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, action, responsiblePerson, verificationNotes, rootCauseAnalysis } = req.body;
+    const { status, action, responsiblePerson, verificationNotes, rootCauseAnalysis, predictedImpact } = req.body;
 
     if (!['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(status)) {
       return res.status(400).json({ status: 'error', message: 'Invalid CAPA status.' });
@@ -46,12 +63,13 @@ exports.updateCapaStatus = async (req, res) => {
       action,
       responsiblePerson,
       verificationNotes,
-      rootCauseAnalysis
+      rootCauseAnalysis,
+      predictedImpact
     });
 
     res.json({
       status: 'success',
-      message: status === 'COMPLETED' ? 'CAPA completed and post-intervention re-evaluation completed!' : 'CAPA status updated.',
+      message: status === 'COMPLETED' ? 'CAPA completed and post-intervention closed-loop verification completed!' : 'CAPA status updated.',
       data: updated
     });
   } catch (error) {

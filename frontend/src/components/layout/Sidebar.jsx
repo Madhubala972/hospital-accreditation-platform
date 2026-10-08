@@ -10,19 +10,21 @@ import {
   SlidersHorizontal,
   Cpu,
   Radar,
+  ShieldCheck,
   ShieldAlert,
   AlertTriangle,
   FileText,
   BotMessageSquare,
   Building2,
   UserCheck,
-  ShieldCheck,
   LogIn,
   Lock
 } from 'lucide-react';
 
 const baseNavItems = [
   { name: 'Executive Overview', path: '/', icon: LayoutDashboard },
+  { name: 'Evidence & Integrity', path: '/evidence', icon: ShieldCheck, badge: 'Auditor Only' },
+  { name: 'Accreditation Standards', path: '/standards', icon: ShieldAlert },
   { name: 'Accreditation Kanban', path: '/kanban', icon: KanbanSquare },
   { name: 'Data Entry Center', path: '/data-entry', icon: FilePlus2 },
   { name: 'Operational Metrics', path: '/metrics', icon: Activity },
@@ -30,7 +32,6 @@ const baseNavItems = [
   { name: 'Counterfactual Analysis', path: '/counterfactual', icon: SlidersHorizontal },
   { name: 'SimPy Digital Twin', path: '/digital-twin', icon: Cpu },
   { name: 'Peer Benchmark Radar', path: '/benchmarks', icon: Radar },
-  { name: 'Accreditation Standards', path: '/standards', icon: ShieldAlert },
   { name: 'Alerts & Anomalies', path: '/alerts', icon: AlertTriangle },
   { 
     name: 'Executive Reports', 
@@ -44,6 +45,7 @@ const baseNavItems = [
 export default function Sidebar() {
   const { user, pendingCount } = useAuth();
   const isDean = user?.role === 'Dean' || user?.role === 'Admin';
+  const isAuditor = user?.role === 'Auditor' || user?.role === 'Admin';
   const isAuditorOrDean = user?.role === 'Auditor' || user?.role === 'Dean' || user?.role === 'Admin';
 
   return (
@@ -55,7 +57,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="font-bold text-sm text-slate-900 tracking-tight">Accreditation IQ</h1>
-          <p className="text-[11px] text-blue-600 font-semibold">Clinical Quality & Safety</p>
+          <p className="text-[11px] text-blue-600 font-semibold">Evidence-Driven Intelligence</p>
         </div>
       </div>
 
@@ -96,7 +98,11 @@ export default function Sidebar() {
 
         {baseNavItems.map((item) => {
           const Icon = item.icon;
-          const isRestrictedForUser = item.path === '/reports' && !isAuditorOrDean;
+          const isEvidence = item.path === '/evidence';
+          const isRestrictedForUser = 
+            (item.path === '/reports' && !isAuditorOrDean) ||
+            (isEvidence && !isAuditor);
+
           return (
             <NavLink
               key={item.path}
@@ -105,16 +111,20 @@ export default function Sidebar() {
                 `flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
                   isActive
                     ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 font-bold shadow-sm'
+                    : isEvidence
+                    ? 'text-cyan-800 bg-cyan-50/60 hover:bg-cyan-100/70 border border-cyan-200/70'
                     : 'text-slate-600 hover:text-blue-700 hover:bg-sky-50/70'
                 }`
               }
             >
               <div className="flex items-center gap-3 truncate">
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon className={`w-4 h-4 flex-shrink-0 ${isEvidence ? 'text-cyan-600' : ''}`} />
                 <span className="truncate">{item.name}</span>
               </div>
               {item.badge && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-0.5 font-mono font-medium">
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-md flex items-center gap-0.5 font-mono font-medium ${
+                  isEvidence ? 'bg-cyan-100 text-cyan-800 border border-cyan-300 font-bold' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                }`}>
                   {isRestrictedForUser && <Lock className="w-2.5 h-2.5 text-amber-600 mr-0.5" />}
                   {item.badge}
                 </span>
@@ -141,4 +151,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-

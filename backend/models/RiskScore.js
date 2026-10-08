@@ -17,12 +17,20 @@ const RiskScoreSchema = new mongoose.Schema({
     complianceGap: { type: Number, default: 0 },
     processDeviation: { type: Number, default: 0 },
     anomalyScore: { type: Number, default: 0 },
-    benchmarkGap: { type: Number, default: 0 }
+    benchmarkGap: { type: Number, default: 0 },
+    evidenceConfidence: { type: Number, default: 100 },
+    evidenceIntegrity: { type: Number, default: 100 }
   },
   contributingFactors: [{ type: String }],
   evidenceSummary: [{ type: String }],
+  evidenceReferences: [{
+    factor: { type: String },
+    evidenceId: { type: String },
+    standardCode: { type: String },
+    riskContribution: { type: Number, default: 0 }
+  }],
   calculatedAt: { type: Date, default: Date.now },
-  dataVersion: { type: String, default: '1.0' },
+  dataVersion: { type: String, default: '2.0-Evidence-Aware' },
   status: { type: String, enum: ['CURRENT', 'SUPERSEDED'], default: 'CURRENT' }
 }, {
   timestamps: true

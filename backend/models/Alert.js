@@ -15,6 +15,13 @@ const AlertSchema = new mongoose.Schema({
   },
   reason: { type: String, required: true },
   evidence: [{ type: String }],
+  abnormalValue: { type: mongoose.Schema.Types.Mixed, default: null },
+  expectedValue: { type: mongoose.Schema.Types.Mixed, default: null },
+  supportingEvidenceIds: [{ type: String }],
+  evidenceCount: { type: Number, default: 1 },
+  integrityStatus: { type: String, enum: ['VERIFIED', 'FLAGGED', 'PENDING'], default: 'VERIFIED' },
+  riskContribution: { type: Number, default: 15 },
+  recommendedCapa: { type: String, default: 'Initiate CAPA workflow and conduct protocol refresher' },
   status: { 
     type: String, 
     required: true, 

@@ -4,6 +4,7 @@ const router = express.Router();
 const metricsController = require('../controllers/metricsController');
 const pathwaysController = require('../controllers/pathwaysController');
 const complianceController = require('../controllers/complianceController');
+const evidenceController = require('../controllers/evidenceController');
 const riskController = require('../controllers/riskController');
 const alertsController = require('../controllers/alertsController');
 const capaController = require('../controllers/capaController');
@@ -31,7 +32,7 @@ router.get('/system/status', async (req, res) => {
   });
 });
 
-// Dashboard Summary (Section 6 & 16: single compact response)
+// Dashboard Summary
 router.get('/dashboard/summary', async (req, res) => {
   try {
     const { department } = req.query;
@@ -41,6 +42,15 @@ router.get('/dashboard/summary', async (req, res) => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 });
+
+// Evidence & Cryptographic Provenance APIs (Section 8)
+router.post('/evidence', evidenceController.createEvidence);
+router.get('/evidence', evidenceController.getEvidenceList);
+router.get('/evidence/integrity', evidenceController.getEvidenceIntegrity);
+router.get('/evidence/:id', evidenceController.getEvidenceById);
+router.get('/evidence/:id/verify', evidenceController.verifyEvidenceById);
+router.get('/evidence/:id/history', evidenceController.getEvidenceHistory);
+router.post('/evidence/:id/manual-verify', evidenceController.manualVerifyEvidence);
 
 // Metrics Endpoints
 router.post('/metrics', metricsController.createMetric);

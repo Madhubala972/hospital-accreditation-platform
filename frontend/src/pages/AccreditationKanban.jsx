@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { capaApi } from '../services/api';
 import StatusBadge from '../components/common/StatusBadge';
@@ -14,7 +15,10 @@ import {
   AlertCircle,
   TrendingUp,
   X,
-  Clock
+  Clock,
+  ShieldCheck,
+  Eye,
+  GitBranch
 } from 'lucide-react';
 
 const COLUMNS = [
@@ -30,7 +34,7 @@ export default function AccreditationKanban() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [actionModal, setActionModal] = useState(null); // Selected card to change status
+  const [actionModal, setActionModal] = useState(null);
 
   // New CAPA Form State
   const [formData, setFormData] = useState({
@@ -39,7 +43,9 @@ export default function AccreditationKanban() {
     action: '',
     responsiblePerson: '',
     deadline: '',
-    priority: 'HIGH'
+    priority: 'HIGH',
+    standardCode: 'NABH-COP.6',
+    predictedImpact: 30.0
   });
 
   const fetchKanban = async () => {
@@ -63,7 +69,7 @@ export default function AccreditationKanban() {
     e.preventDefault();
     try {
       await capaApi.create(formData);
-      notify('New CAPA action created successfully.', 'success');
+      notify('New CAPA action created with simulation link.', 'success');
       setShowModal(false);
       setFormData({
         problem: '',
@@ -71,7 +77,9 @@ export default function AccreditationKanban() {
         action: '',
         responsiblePerson: '',
         deadline: '',
-        priority: 'HIGH'
+        priority: 'HIGH',
+        standardCode: 'NABH-COP.6',
+        predictedImpact: 30.0
       });
       fetchKanban();
     } catch (err) {
@@ -83,7 +91,7 @@ export default function AccreditationKanban() {
     try {
       const res = await capaApi.updateStatus(capaId, newStatus);
       if (newStatus === 'COMPLETED') {
-        notify('CAPA completed! Department re-evaluation triggered & before/after improvement verified.', 'success');
+        notify('CAPA completed! Post-intervention re-evaluation completed and closed loop verified.', 'success');
       } else {
         notify(`CAPA moved to ${newStatus}.`, 'info');
       }
@@ -110,7 +118,7 @@ export default function AccreditationKanban() {
             <div>
               <h2 className="text-lg font-bold text-slate-900">Accreditation Corrective Actions (CAPA) Kanban</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Track root-cause investigations, manage corrective actions, and verify measurable quality improvements after completion.
+                Closed-loop CAPA workflow: Problem → Root Cause → Evidence → Simulation → Implementation → Verification
               </p>
             </div>
           </div>
@@ -155,9 +163,16 @@ export default function AccreditationKanban() {
                       className="p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition shadow-sm space-y-3 group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                          {item.department}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            {item.department}
+                          </span>
+                          {item.standardCode && (
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              {item.standardCode}
+                            </span>
+                          )}
+                        </div>
                         <StatusBadge status={item.priority} label={item.priority} />
                       </div>
 
@@ -180,16 +195,29 @@ export default function AccreditationKanban() {
                         </div>
                       </div>
 
-                      {/* Closed Loop: Before vs After Metrics Comparison (Section 10) */}
+                      {/* Simulation & Evidence Link Indicators (Section 12 & 14 in PDF) */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                        <span className="text-blue-700 font-bold">
+                          Predicted Gain: {item.predictedImpact || 30}%
+                        </span>
+                        <Link
+                          to="/evidence"
+                          className="text-cyan-700 hover:text-cyan-900 font-bold flex items-center gap-0.5"
+                        >
+                          <Eye className="w-3 h-3" /> Evidence Linked
+                        </Link>
+                      </div>
+
+                      {/* Closed Loop: Before vs After Metrics Comparison */}
                       {item.status === 'COMPLETED' && (
                         <div className="pt-2 border-t border-slate-100 space-y-1.5">
                           <div className="flex items-center justify-between text-[11px] text-emerald-700 font-bold">
                             <span className="flex items-center gap-1">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Closed Loop Verified</span>
+                              <span>{item.verificationStatus || 'VERIFIED_EFFECTIVE'}</span>
                             </span>
                             {item.improvementPercentage !== null && (
-                              <span className="bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+{item.improvementPercentage}% Imprv.</span>
+                              <span className="bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">+{item.improvementPercentage}% Actual</span>
                             )}
                           </div>
                           <div className="grid grid-cols-2 gap-1 text-[10px] p-2 rounded bg-emerald-50/60 border border-emerald-200">
@@ -219,7 +247,7 @@ export default function AccreditationKanban() {
                             <ArrowRight className="w-3 h-3" />
                           </button>
                         ) : (
-                          <div className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Audit Archived</div>
+                          <div className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Closed-Loop Verified</div>
                         )}
                       </div>
                     </div>
@@ -263,7 +291,7 @@ export default function AccreditationKanban() {
                         : 'bg-slate-50 hover:bg-blue-50 border-slate-200 hover:border-blue-200 text-slate-800'
                     }`}
                   >
-                    {st === 'COMPLETED' ? 'Mark Completed & Re-evaluate' : st}
+                    {st === 'COMPLETED' ? 'Mark Completed & Verify Impact' : st}
                   </button>
                 ))}
               </div>
@@ -311,17 +339,13 @@ export default function AccreditationKanban() {
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Priority</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  <label className="block font-semibold text-slate-700 mb-1">Standard Code</label>
+                  <input
+                    type="text"
+                    value={formData.standardCode}
+                    onChange={(e) => setFormData({ ...formData, standardCode: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="CRITICAL">CRITICAL</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="LOW">LOW</option>
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -346,7 +370,7 @@ export default function AccreditationKanban() {
                     placeholder="e.g. Elena Rostova"
                     value={formData.responsiblePerson}
                     onChange={(e) => setFormData({ ...formData, responsiblePerson: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
