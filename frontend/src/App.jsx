@@ -32,11 +32,14 @@ export default function App() {
               <Route index element={<ExecutiveOverview />} />
               <Route path="evidence" element={<EvidenceTraceability />} />
               <Route path="kanban" element={<AccreditationKanban />} />
+              <Route path="capa" element={<AccreditationKanban />} />
               <Route path="data-entry" element={<DataEntryCenter />} />
               <Route path="metrics" element={<OperationalMetrics />} />
               <Route path="process-mining" element={<ProcessMiningView />} />
+              <Route path="pathways" element={<ProcessMiningView />} />
               <Route path="counterfactual" element={<CounterfactualAnalysis />} />
               <Route path="digital-twin" element={<DigitalTwinView />} />
+              <Route path="simulation" element={<DigitalTwinView />} />
               <Route path="benchmarks" element={<PeerBenchmarkRadar />} />
               <Route path="standards" element={<AccreditationStandards />} />
               <Route path="alerts" element={<AlertsAnomalies />} />
@@ -44,6 +47,7 @@ export default function App() {
               <Route path="copilot" element={<AICopilot />} />
               <Route path="dean-approvals" element={<DeanApprovals />} />
               <Route path="*" element={<Navigate to="/" replace />} />
+
             </Route>
           </Routes>
         </AppProvider>

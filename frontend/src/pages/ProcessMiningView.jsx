@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { pathwaysApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { pathwaysApi, capaApi } from '../services/api';
 import { EmptyState, ErrorState } from '../components/common/StateViews';
 import StatusBadge from '../components/common/StatusBadge';
 import {
@@ -21,22 +22,89 @@ import {
   ShieldCheck,
   Zap,
   Activity,
-  ChevronRight
+  ChevronRight,
+  X,
+  User,
+  Calendar,
+  Send
 } from 'lucide-react';
 
 const DEPARTMENTS = ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'];
 
 export default function ProcessMiningView() {
-  const { selectedDepartment, setSelectedDepartment, refreshKey } = useApp();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { selectedDepartment, setSelectedDepartment, refreshKey, showNotification } = useApp();
   const [miningData, setMiningData] = useState(null);
   const [conformanceData, setConformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCaseFilter, setSelectedCaseFilter] = useState('ALL');
 
+  // CAPA Creation Modal State
+  const [selectedDevForCapa, setSelectedDevForCapa] = useState(null);
+  const [capaForm, setCapaForm] = useState({
+    problem: '',
+    department: 'ICU',
+    action: '',
+    responsiblePerson: '',
+    deadline: '',
+    priority: 'HIGH',
+    standardCode: 'NABH-COP.6',
+    predictedImpact: 25.0
+  });
+  const [isSubmittingCapa, setIsSubmittingCapa] = useState(false);
+
   const targetDept = selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU';
 
+  const handleOpenCapaModal = (dev) => {
+    const prob = `[CLINICAL DEVIATION] ${dev.activity} in ${targetDept}: ${dev.rootCause || 'Mandatory clinical protocol step was bypassed.'}`;
+    const act = dev.recommendedCapa || `Execute mandatory protocol verification and clinical retraining for '${dev.activity}'.`;
+    const code = dev.standardCode || (targetDept === 'ICU' ? 'NABH-COP.6' : 'NABH-PROTOCOL');
+    
+    setCapaForm({
+      problem: prob,
+      department: targetDept,
+      action: act,
+      responsiblePerson: user?.name || (targetDept === 'ICU' ? 'Dr. Arthur Vance (ICU Quality Lead)' : 'Clinical Quality Lead'),
+      deadline: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+      priority: dev.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+      standardCode: code,
+      predictedImpact: Number(dev.riskContribution || 20) * 1.2
+    });
+    setSelectedDevForCapa(dev);
+  };
+
+  const handleCommitCapa = async (e) => {
+    e?.preventDefault();
+    if (!capaForm.problem || !capaForm.action) {
+      showNotification('Please provide problem and remediation action.', 'error');
+      return;
+    }
+    try {
+      setIsSubmittingCapa(true);
+      await capaApi.create({
+        problem: capaForm.problem,
+        department: capaForm.department || targetDept,
+        action: capaForm.action,
+        responsiblePerson: capaForm.responsiblePerson || 'Clinical Quality Lead',
+        deadline: capaForm.deadline || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+        priority: capaForm.priority || 'HIGH',
+        standardCode: capaForm.standardCode || 'NABH-COP.6',
+        predictedImpact: capaForm.predictedImpact || 25.0
+      });
+      showNotification(`🚀 CAPA plan successfully created for ${selectedDevForCapa?.activity || targetDept}!`, 'success');
+      setSelectedDevForCapa(null);
+      navigate('/kanban');
+    } catch (err) {
+      showNotification(err.response?.data?.message || err.message, 'error');
+    } finally {
+      setIsSubmittingCapa(false);
+    }
+  };
+
   const fetchData = async () => {
+
     try {
       setLoading(true);
       setError(null);
@@ -324,19 +392,21 @@ export default function ProcessMiningView() {
                     <span>View Evidence in Ledger</span>
                   </Link>
 
-                  <Link
-                    to="/capa"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-800 hover:underline"
+                  <button
+                    onClick={() => handleOpenCapaModal(dev)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs shadow-xs transition"
                   >
+                    <Zap className="w-3.5 h-3.5" />
                     <span>Launch CAPA Plan</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
 
       {/* Directly-Follows Transition Flow Graph */}
       <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
@@ -458,7 +528,161 @@ export default function ProcessMiningView() {
           </table>
         </div>
       </div>
+
+      {/* Interactive CAPA Remediation Creation Modal */}
+      {selectedDevForCapa && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white border-2 border-rose-300 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl relative overflow-hidden animate-scale-up space-y-4">
+            {/* Top pulsing banner */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-amber-500 to-rose-600 animate-pulse" />
+
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedDevForCapa(null)}
+              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-800 rounded-xl bg-slate-100 hover:bg-slate-200 transition border border-slate-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-xs">
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 font-mono">
+                    NEW CAPA REMEDIATION ACTION
+                  </span>
+                  <span className="text-[10px] text-slate-600 font-bold font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    {capaForm.standardCode}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 mt-1">
+                  Launch CAPA for {selectedDevForCapa.activity}
+                </h3>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCommitCapa} className="space-y-3.5 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Problem Statement</label>
+                <textarea
+                  rows={2}
+                  value={capaForm.problem}
+                  onChange={(e) => setCapaForm({ ...capaForm, problem: e.target.value })}
+                  className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-none bg-slate-50 font-medium"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Corrective & Remediation Action Plan</label>
+                <textarea
+                  rows={3}
+                  value={capaForm.action}
+                  onChange={(e) => setCapaForm({ ...capaForm, action: e.target.value })}
+                  className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
+                  placeholder="Specific remediation steps, staff re-training, protocol enforcement..."
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={capaForm.department}
+                    readOnly
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-slate-100 font-semibold text-slate-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Priority Level</label>
+                  <select
+                    value={capaForm.priority}
+                    onChange={(e) => setCapaForm({ ...capaForm, priority: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-bold"
+                  >
+                    <option value="CRITICAL">CRITICAL (Emergency Action)</option>
+                    <option value="HIGH">HIGH (Immediate Review)</option>
+                    <option value="MEDIUM">MEDIUM (Standard CAPA)</option>
+                    <option value="LOW">LOW (Continuous Improvement)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Responsible Quality Lead</label>
+                  <input
+                    type="text"
+                    value={capaForm.responsiblePerson}
+                    onChange={(e) => setCapaForm({ ...capaForm, responsiblePerson: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Resolution Deadline</label>
+                  <input
+                    type="date"
+                    value={capaForm.deadline}
+                    onChange={(e) => setCapaForm({ ...capaForm, deadline: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Evidence & Impact note */}
+              <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between text-[11px] text-blue-900 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Anchored Block: {selectedDevForCapa.evidenceId}
+                </span>
+                <span className="text-emerald-700 font-bold">
+                  Est. Impact: +{capaForm.predictedImpact}% Conformance
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDevForCapa(null)}
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingCapa}
+                  className="flex-1 py-2.5 px-4 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-600/20 transition flex items-center justify-center gap-2"
+                >
+                  {isSubmittingCapa ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating Plan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Commit & Launch CAPA</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
