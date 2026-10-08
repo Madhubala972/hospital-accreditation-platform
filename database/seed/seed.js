@@ -313,6 +313,154 @@ async function seedDatabase() {
   let globalHashChain = 'GENESIS_HASH_00000000000000000000000000000000';
   let chainIndexCounter = 1;
 
+  const deptEvidenceDefinitions = {
+    'ICU': [
+      {
+        code: 'HIC2',
+        suffix: '01',
+        standardCode: 'NABH-HIC.2',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `ICU Central Line Bundle & Sterile Barrier Maintenance Audit Log (${date})`,
+        desc: (trend, dStr) => `Surveillance audit of sterile barrier dressing change frequencies in ICU pods on ${dStr}. 48h dressing renewal compliance tracking.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'ICU', protocol: 'CLABSI Sterile Barrier Bundle', maxIntervalHours: 48, unit: 'ICU Pod B', inspectedCases: 8, status: 'VERIFIED' })
+      },
+      {
+        code: 'COP6',
+        suffix: '02',
+        standardCode: 'NABH-COP.6',
+        evidenceType: 'PATHWAY_TRACE',
+        title: (date) => `ICU High-Risk Medication Dual-Clinician Verification Record (${date})`,
+        desc: (trend, dStr) => `Audit of bedside dual-nurse electronic verification scans prior to administration of high-alert infusions on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'ICU', protocol: 'High-Alert Medication Dual Check', dualCheckThreshold: '100%', unit: 'ICU', sampleChecks: 30, verified: true })
+      },
+      {
+        code: 'MET',
+        suffix: '03',
+        standardCode: 'NABH-HRM.3',
+        evidenceType: 'METRIC',
+        title: (date) => `ICU Daily Operational Census & Staffing Telemetry (${date})`,
+        desc: (trend, dStr) => `Daily census telemetry, nurse-to-patient staffing ratio (${trend.staff}), and bed occupancy (${trend.occupancy}%) on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'ICU', occupancyRate: trend.occupancy, avgWaitingTime: trend.wait, infectionRate: trend.infection, staffingLevel: trend.staff, pathwayConformance: trend.conformance })
+      }
+    ],
+    'Cardiology': [
+      {
+        code: 'COP12',
+        suffix: '01',
+        standardCode: 'NABH-COP.12',
+        evidenceType: 'PATHWAY_TRACE',
+        title: (date) => `Cardiology Door-to-12-Lead ECG <10m Diagnostic Record (${date})`,
+        desc: (trend, dStr) => `Electronic timestamps tracking door-to-ECG acquisition within mandatory 10-minute diagnostic window on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Cardiology', protocol: 'Door-to-ECG Acquisition', benchmarkMins: 10, unit: 'Cardiology Triage', cases: 30, verified: true })
+      },
+      {
+        code: 'AAC3',
+        suffix: '02',
+        standardCode: 'NABH-AAC.3',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `Acute Coronary Syndrome Fast-Track Cath Lab Activation Audit (${date})`,
+        desc: (trend, dStr) => `Cardiac biomarker enzyme processing and Cath Lab team dispatch timing logs on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Cardiology', protocol: 'STEMI Fast-Track Cath Lab Activation', maxDispatchMins: 30, unit: 'Cath Lab Suite 1', verified: true })
+      },
+      {
+        code: 'COP6',
+        suffix: '03',
+        standardCode: 'NABH-COP.6',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `Cardiology Anticoagulant & High-Alert Medication Verification (${date})`,
+        desc: (trend, dStr) => `Weight-based anticoagulant dosing calculation and secondary physician countersignature record on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Cardiology', protocol: 'Anticoagulant Protocol Verification', unit: 'CCU', verified: true })
+      }
+    ],
+    'Surgery': [
+      {
+        code: 'IPSG4',
+        suffix: '01',
+        standardCode: 'JCI-IPSG.4',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `Operating Theatre WHO 3-Phase Safe Surgery Checklist Audit (${date})`,
+        desc: (trend, dStr) => `Digital verification logs for Sign-In, Time-Out, and Sign-Out phases in operating suites on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Surgery', protocol: 'WHO 3-Phase Surgical Checklist', orSuites: ['OR-1', 'OR-2', 'OR-3'], phaseAudit: '100% Mandatory', verified: true })
+      },
+      {
+        code: 'IPSG1',
+        suffix: '02',
+        standardCode: 'JCI-IPSG.1',
+        evidenceType: 'PATHWAY_TRACE',
+        title: (date) => `Pre-Operative Surgical Site Marking & Informed Consent Record (${date})`,
+        desc: (trend, dStr) => `Pre-incision surgical site verification, active patient identification, and surgeon electronic sign-off on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Surgery', protocol: 'Surgical Site Marking & Identification', unit: 'Pre-Op Holding', verified: true })
+      },
+      {
+        code: 'COP8',
+        suffix: '03',
+        standardCode: 'NABH-COP.8',
+        evidenceType: 'METRIC',
+        title: (date) => `Surgical Suite Operational & Anesthesia Protocol Telemetry (${date})`,
+        desc: (trend, dStr) => `Operating room air exchange monitoring, anesthesia clearance logs, and recovery bed turnaround on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Surgery', occupancyRate: trend.occupancy, avgWaitingTime: trend.wait, infectionRate: trend.infection, staffingLevel: trend.staff, pathwayConformance: trend.conformance })
+      }
+    ],
+    'Emergency': [
+      {
+        code: 'AAC4',
+        suffix: '01',
+        standardCode: 'NABH-AAC.4',
+        evidenceType: 'PATHWAY_TRACE',
+        title: (date) => `Emergency Door-to-Doctor Acuity Triage Log (${date})`,
+        desc: (trend, dStr) => `Emergency Department electronic arrival timestamps and physician initial contact triage recordings on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Emergency', protocol: 'Emergency Acuity Triage', targetWaitMins: 30, unit: 'Emergency Triage Bay', verified: true })
+      },
+      {
+        code: 'COP4',
+        suffix: '02',
+        standardCode: 'NABH-COP.4',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `Emergency Critical Diagnostic Imaging Turnaround Record (${date})`,
+        desc: (trend, dStr) => `Turnaround duration tracking for acute emergency CT and X-ray trauma diagnostic orders on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Emergency', protocol: 'Emergency Imaging Turnaround', maxTurnaroundMins: 45, unit: 'Radiology Bay 2', verified: true })
+      },
+      {
+        code: 'MET',
+        suffix: '03',
+        standardCode: 'NABH-AAC.4',
+        evidenceType: 'METRIC',
+        title: (date) => `Emergency Department Surge Census & Bed Occupancy Telemetry (${date})`,
+        desc: (trend, dStr) => `Hourly triage intake volume, left-without-being-seen (LWBS) rate, and acute bay occupancy on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'Emergency', occupancyRate: trend.occupancy, avgWaitingTime: trend.wait, infectionRate: trend.infection, staffingLevel: trend.staff, pathwayConformance: trend.conformance })
+      }
+    ],
+    'General Ward': [
+      {
+        code: 'COP6',
+        suffix: '01',
+        standardCode: 'NABH-COP.6',
+        evidenceType: 'PATHWAY_TRACE',
+        title: (date) => `Ward Bedside Barcode Point-of-Care Medication Administration Scan (${date})`,
+        desc: (trend, dStr) => `Point-of-care patient wristband barcode scanning verification logs for inpatient doses on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'General Ward', protocol: 'Point-of-Care Barcode Verification', unit: 'Ward 4B / 5A', verified: true })
+      },
+      {
+        code: 'PRE3',
+        suffix: '02',
+        standardCode: 'NABH-PRE.3',
+        evidenceType: 'CLINICAL_VERIFICATION',
+        title: (date) => `Inpatient Discharge Medication Reconciliation & Pharmacist Audit (${date})`,
+        desc: (trend, dStr) => `Clinical pharmacist discharge medication reconciliation and patient education verification records on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'General Ward', protocol: 'Discharge Medication Reconciliation', unit: 'Pharmacy Unit', verified: true })
+      },
+      {
+        code: 'PS2',
+        suffix: '03',
+        standardCode: 'NABH-PS.2',
+        evidenceType: 'METRIC',
+        title: (date) => `General Ward Bed Census & Staffing Ratio Telemetry (${date})`,
+        desc: (trend, dStr) => `Inpatient bed census, discharge turnaround, and nursing shift allocation records on ${dStr}.`,
+        getPayload: (trend, dStr) => ({ auditDate: dStr, department: 'General Ward', occupancyRate: trend.occupancy, avgWaitingTime: trend.wait, infectionRate: trend.infection, staffingLevel: trend.staff, pathwayConformance: trend.conformance })
+      }
+    ]
+  };
+
   for (let day = 14; day >= 0; day--) {
     const dayDate = new Date(now - day * DAY_MS);
     const dStr = dayDate.toISOString().split('T')[0];
@@ -324,53 +472,43 @@ async function seedDatabase() {
     // Process each department for this day
     for (const dept of departments) {
       const trend = deptBaseTrends[dept](day);
-      const dayEvId = `EV-${dept.substring(0, 3).toUpperCase()}-${dStr.replace(/-/g, '')}-01`;
+      const deptEvDefs = deptEvidenceDefinitions[dept];
+      const deptPrefix = dept.substring(0, 3).toUpperCase();
+      let primaryDayEvId = `EV-${deptPrefix}-${deptEvDefs[0].code}-${dStr.replace(/-/g, '')}-${deptEvDefs[0].suffix}`;
 
-      // 1. Create Evidence Record for this Day & Department
-      const evidencePayload = {
-        auditDate: dStr,
-        department: dept,
-        occupancyRate: trend.occupancy,
-        avgWaitingTime: trend.wait,
-        infectionRate: trend.infection,
-        staffingLevel: trend.staff,
-        pathwayConformance: trend.conformance,
-        incidentCount: trend.incidents,
-        shiftInspector: day === 0 ? 'Elena Rostova (Lead Quality Auditor)' : `Shift Supervisor (Day -${day})`
-      };
+      // 1. Create Distinct Evidence Records for Each Standard/Protocol for this Day
+      for (const evDef of deptEvDefs) {
+        const evId = `EV-${deptPrefix}-${evDef.code}-${dStr.replace(/-/g, '')}-${evDef.suffix}`;
+        const payload = evDef.getPayload(trend, dStr);
+        const evHash = computeHash(payload, globalHashChain);
 
-      const evHash = computeHash(evidencePayload, globalHashChain);
+        allEvidenceToInsert.push({
+          evidenceId: evId,
+          department: dept,
+          standardCode: evDef.standardCode,
+          evidenceType: evDef.evidenceType,
+          sourceType: 'ClinicalProtocolTrace',
+          sourceId: `TRACE-${dept}-${evDef.code}-${dStr}`,
+          title: evDef.title(cleanDateFormatted),
+          description: evDef.desc(trend, dStr),
+          dataPayload: payload,
+          originalHash: evHash,
+          currentHash: evHash,
+          previousHash: globalHashChain,
+          chainIndex: chainIndexCounter++,
+          isCryptographicallySealed: true,
+          verifiedBy: day === 0 ? 'Elena Rostova (Lead Quality Auditor)' : `Shift Auditor (${dept})`,
+          verifiedAt: dayDate,
+          auditorNotes: day === 0 ? 'Physical clinical audit, EHR logs, and protocol verification verified.' : 'Automated surveillance audit verified by Lead Auditor.',
+          recordedBy: day === 0 ? 'Elena Rostova' : `Clinical Supervisor (${dept})`,
+          recordedAt: dayDate,
+          integrityStatus: 'VERIFIED',
+          verificationNotes: `SHA-256 cryptographic provenance anchored on ${dStr}.`,
+          version: 1
+        });
 
-      const standardCode = dept === 'ICU' 
-        ? (trend.conformance < 90 ? 'NABH-COP.6' : (trend.infection > 2.0 ? 'NABH-IC.1' : 'NABH-HRM.3'))
-        : (dept === 'Emergency' ? 'NABH-AAC.4' : (dept === 'Surgery' ? 'JCI-IPSG.4' : (dept === 'Cardiology' ? 'NABH-COP.12' : 'NABH-PS.2')));
-
-      allEvidenceToInsert.push({
-        evidenceId: dayEvId,
-        department: dept,
-        standardCode,
-        evidenceType: 'METRIC',
-        sourceType: 'HospitalMetric',
-        sourceId: `METRIC-${dept}-${dStr}`,
-        title: `${dept} Daily Quality & Protocol Verification Record (${cleanDateFormatted})`,
-        description: `Verified operational telemetry for ${dept} on ${dStr}. Conformance: ${trend.conformance}%, Occupancy: ${trend.occupancy}%, Infection: ${trend.infection}%.`,
-        dataPayload: evidencePayload,
-        originalHash: evHash,
-        currentHash: evHash,
-        previousHash: globalHashChain,
-        chainIndex: chainIndexCounter++,
-        isCryptographicallySealed: true,
-        verifiedBy: day === 0 ? 'Elena Rostova (Lead Quality Auditor)' : `Elena Rostova (Shift Quality Auditor)`,
-        verifiedAt: dayDate,
-        auditorNotes: day === 0 ? 'Physical audit and digital clinical log review completed. Cryptographically sealed.' : 'Automated surveillance audit verified by Lead Auditor.',
-        recordedBy: day === 0 ? 'Elena Rostova' : `Shift Inspector (${dept})`,
-        recordedAt: dayDate,
-        integrityStatus: 'VERIFIED',
-        verificationNotes: `SHA-256 cryptographic provenance anchored on ${dStr}.`,
-        version: 1
-      });
-
-      globalHashChain = evHash;
+        globalHashChain = evHash;
+      }
 
       // 2. Create HospitalMetric for this Day & Department
       allMetricsToInsert.push({
@@ -384,9 +522,9 @@ async function seedDatabase() {
         pathwayConformance: trend.conformance,
         notes: shiftNotes,
         recordedBy: day === 0 ? 'Elena Rostova' : 'Shift Supervisor',
-        evidenceId: dayEvId,
+        evidenceId: primaryDayEvId,
         verificationStatus: 'VERIFIED',
-        integrityHash: evHash
+        integrityHash: globalHashChain
       });
 
       // 3. Compute and Record RiskScore for this Day & Department
@@ -401,10 +539,10 @@ async function seedDatabase() {
       else if (calculatedRisk >= 35) riskCat = 'MEDIUM';
 
       const contributingFactors = [];
-      if (trend.conformance < 90) contributingFactors.push(`Clinical pathway conformance deficit: ${trend.conformance}% [Evidence: ${dayEvId}]`);
-      if (trend.occupancy > 85) contributingFactors.push(`High bed occupancy (${trend.occupancy}%) straining unit capacity [Evidence: ${dayEvId}]`);
-      if (trend.infection > 2.0) contributingFactors.push(`Infection rate (${trend.infection}%) exceeds 2.0% threshold [Evidence: ${dayEvId}]`);
-      if (trend.wait > 30) contributingFactors.push(`Triage waiting time (${trend.wait}m) exceeds 30m target [Evidence: ${dayEvId}]`);
+      if (trend.conformance < 90) contributingFactors.push(`Clinical pathway conformance deficit: ${trend.conformance}% [Evidence: ${primaryDayEvId}]`);
+      if (trend.occupancy > 85) contributingFactors.push(`High bed occupancy (${trend.occupancy}%) straining unit capacity [Evidence: ${primaryDayEvId}]`);
+      if (trend.infection > 2.0) contributingFactors.push(`Infection rate (${trend.infection}%) exceeds 2.0% threshold [Evidence: ${primaryDayEvId}]`);
+      if (trend.wait > 30) contributingFactors.push(`Triage waiting time (${trend.wait}m) exceeds 30m target [Evidence: ${primaryDayEvId}]`);
       if (contributingFactors.length === 0) contributingFactors.push(`All operational indicators in ${dept} satisfied target thresholds on ${dStr}.`);
 
       allRiskScoresToInsert.push({
@@ -422,11 +560,11 @@ async function seedDatabase() {
         },
         contributingFactors,
         evidenceSummary: [
-          `Telemetry evidence block ${dayEvId} cryptographically verified on ${dStr}.`,
+          `Telemetry evidence block ${primaryDayEvId} cryptographically verified on ${dStr}.`,
           `Conformance ${trend.conformance}%, Occupancy ${trend.occupancy}%, Infection ${trend.infection}%.`
         ],
         evidenceReferences: [
-          { factor: contributingFactors[0], evidenceId: dayEvId, standardCode, riskContribution: 18 }
+          { factor: contributingFactors[0], evidenceId: primaryDayEvId, standardCode: deptEvDefs[0].standardCode, riskContribution: 18 }
         ],
         calculatedAt: dayDate,
         dataVersion: '2.0-Evidence-Aware',
@@ -441,14 +579,14 @@ async function seedDatabase() {
           total: day === 0 ? 30 : 15,
           deviatedCount: day === 0 ? 8 : (day === 7 ? 4 : 1),
           steps: ['Admission', 'Triage', 'Lab Cultures', 'Central Line Sterile Dressing', 'Medication Verification', 'Treatment'],
-          deviationsPossible: ['Medication Verification', 'Central Line Sterile Dressing'],
+          deviationsPossible: ['Central Line Sterile Dressing', 'Medication Verification'],
           diagnoses: ['Acute Respiratory Failure', 'Septic Shock Surveillance', 'Post-Cardiopulmonary Resuscitation']
         },
         'Emergency': {
           total: day === 0 ? 35 : 15,
           deviatedCount: day === 0 ? 7 : (day === 7 ? 3 : 1),
           steps: ['Registration', 'Acuity Triage', 'Emergency Physician Assessment', 'Diagnostic Imaging', 'Medication Verification', 'Disposition'],
-          deviationsPossible: ['Diagnostic Imaging', 'Acuity Triage'],
+          deviationsPossible: ['Acuity Triage', 'Diagnostic Imaging'],
           diagnoses: ['Acute Chest Pain', 'Polytrauma Triage', 'Severe Dyspnea', 'Uncontrolled Hypertension']
         },
         'Surgery': {
@@ -500,7 +638,20 @@ async function seedDatabase() {
             });
           }
 
-          const traceEvId = `EV-${deptPrefix}-${dStr.replace(/-/g, '')}-01`;
+          let traceEvId = `EV-${deptPrefix}-MET-${dStr.replace(/-/g, '')}-03`;
+          if (isDeviated) {
+            if (skippedStep === 'Central Line Sterile Dressing') traceEvId = `EV-ICU-HIC2-${dStr.replace(/-/g, '')}-01`;
+            else if (skippedStep === 'Medication Verification' && dept === 'ICU') traceEvId = `EV-ICU-COP6-${dStr.replace(/-/g, '')}-02`;
+            else if (skippedStep === 'Rapid 12-Lead ECG') traceEvId = `EV-CAR-COP12-${dStr.replace(/-/g, '')}-01`;
+            else if (skippedStep === 'Cath Lab Activation') traceEvId = `EV-CAR-AAC3-${dStr.replace(/-/g, '')}-02`;
+            else if (skippedStep === 'Medication Verification' && dept === 'Cardiology') traceEvId = `EV-CAR-COP6-${dStr.replace(/-/g, '')}-03`;
+            else if (skippedStep === 'WHO Surgical Safety Checklist') traceEvId = `EV-SUR-IPSG4-${dStr.replace(/-/g, '')}-01`;
+            else if (skippedStep === 'Site Marking & Consent') traceEvId = `EV-SUR-IPSG1-${dStr.replace(/-/g, '')}-02`;
+            else if (skippedStep === 'Acuity Triage') traceEvId = `EV-EME-AAC4-${dStr.replace(/-/g, '')}-01`;
+            else if (skippedStep === 'Diagnostic Imaging') traceEvId = `EV-EME-COP4-${dStr.replace(/-/g, '')}-02`;
+            else if (skippedStep === 'Bedside Medication Scan') traceEvId = `EV-GEN-COP6-${dStr.replace(/-/g, '')}-01`;
+            else if (skippedStep === 'Discharge Reconciliation') traceEvId = `EV-GEN-PRE3-${dStr.replace(/-/g, '')}-02`;
+          }
 
           allPathwaysToInsert.push({
             caseId,
@@ -517,6 +668,7 @@ async function seedDatabase() {
       }
     }
   }
+
 
   // 3 Pending Unsealed Clinical Evidence Records awaiting Auditor Manual Verification
   allEvidenceToInsert.push(

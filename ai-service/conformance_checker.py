@@ -110,6 +110,22 @@ STANDARD_MAPPING = {
     }
 }
 
+def get_deviation_evidence_id(dept_prefix, activity):
+    mapping = {
+        ("ICU", "Central Line Sterile Dressing"): "EV-ICU-HIC2-20261008-01",
+        ("ICU", "Medication Verification"): "EV-ICU-COP6-20261008-02",
+        ("CAR", "Rapid 12-Lead ECG"): "EV-CAR-COP12-20261008-01",
+        ("CAR", "Cath Lab Activation"): "EV-CAR-AAC3-20261008-02",
+        ("CAR", "Medication Verification"): "EV-CAR-COP6-20261008-03",
+        ("SUR", "WHO Surgical Safety Checklist"): "EV-SUR-IPSG4-20261008-01",
+        ("SUR", "Site Marking & Consent"): "EV-SUR-IPSG1-20261008-02",
+        ("EME", "Acuity Triage"): "EV-EME-AAC4-20261008-01",
+        ("EME", "Diagnostic Imaging"): "EV-EME-COP4-20261008-02",
+        ("GEN", "Bedside Medication Scan"): "EV-GEN-COP6-20261008-01",
+        ("GEN", "Discharge Reconciliation"): "EV-GEN-PRE3-20261008-02"
+    }
+    return mapping.get((dept_prefix, activity), f"EV-{dept_prefix}-20261008-01")
+
 def check_trace_conformance(traces, department="ICU", custom_reference_pathway=None):
     """
     Evaluates patient traces against expected clinical protocol.
@@ -160,8 +176,12 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
                 
         is_compliant = (len(missing_steps) == 0 and len(order_violations) == 0)
         
-        # Dynamic evidence identifier linking to authentic cryptographic records
-        evidence_id = case.get('evidenceId') or f"EV-{dept_prefix}-20261008-01"
+        # Resolve specific evidence ID based on trace or first missing activity
+        if missing_steps:
+            first_missing = missing_steps[0]
+            evidence_id = case.get('evidenceId') or get_deviation_evidence_id(dept_prefix, first_missing)
+        else:
+            evidence_id = case.get('evidenceId') or f"EV-{dept_prefix}-MET-20261008-03"
         
         if is_compliant:
             compliant_count += 1
@@ -211,7 +231,7 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
             "recommendedCapa": f"Mandate digital verification for '{activity}' prior to clinical handover."
         })
         
-        evidence_id = f"EV-{dept_prefix}-20261008-01"
+        evidence_id = get_deviation_evidence_id(dept_prefix, activity)
         sample_cases = missing_activity_cases[activity][:3]
         sample_str = ", ".join(sample_cases)
         
@@ -236,7 +256,7 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
         
     for violation, count in order_violation_counts.items():
         pct = round((count / total_traces) * 100.0, 1)
-        evidence_id = f"EV-{dept_prefix}-20261008-01"
+        evidence_id = f"EV-{dept_prefix}-SEQ-20261008-01"
         sample_cases = order_violation_cases[violation][:3]
         
         evidence_msg = f"{count} traces exhibited sequence violation: {violation} (Cases: {', '.join(sample_cases)}) [Evidence: {evidence_id}]"
@@ -272,4 +292,5 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
         "evidence": evidence_logs,
         "caseDetails": case_results[:25] # Return top 25 for inspection
     }
+
 
