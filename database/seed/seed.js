@@ -434,52 +434,86 @@ async function seedDatabase() {
       });
     }
 
-    // 4. Seed Daily Patient Pathways for Today & Historical Days
+    // 4. Seed Daily Patient Pathways for All 5 Departments for Today & Historical Days
     if (day === 0 || day === 1 || day === 3 || day === 7) {
-      const traceCount = day === 0 ? 50 : 20;
-      const skippedCount = day === 0 ? 12 : (day === 7 ? 6 : (day === 3 ? 3 : 1));
+      const traceConfigs = {
+        'ICU': {
+          total: day === 0 ? 30 : 15,
+          deviatedCount: day === 0 ? 8 : (day === 7 ? 4 : 1),
+          steps: ['Admission', 'Triage', 'Lab Cultures', 'Central Line Sterile Dressing', 'Medication Verification', 'Treatment'],
+          deviationsPossible: ['Medication Verification', 'Central Line Sterile Dressing'],
+          diagnoses: ['Acute Respiratory Failure', 'Septic Shock Surveillance', 'Post-Cardiopulmonary Resuscitation']
+        },
+        'Emergency': {
+          total: day === 0 ? 35 : 15,
+          deviatedCount: day === 0 ? 7 : (day === 7 ? 3 : 1),
+          steps: ['Registration', 'Acuity Triage', 'Emergency Physician Assessment', 'Diagnostic Imaging', 'Medication Verification', 'Disposition'],
+          deviationsPossible: ['Diagnostic Imaging', 'Acuity Triage'],
+          diagnoses: ['Acute Chest Pain', 'Polytrauma Triage', 'Severe Dyspnea', 'Uncontrolled Hypertension']
+        },
+        'Surgery': {
+          total: day === 0 ? 25 : 12,
+          deviatedCount: day === 0 ? 3 : (day === 7 ? 2 : 0),
+          steps: ['Pre-Op Assessment', 'Site Marking & Consent', 'Anesthesia Check', 'WHO Surgical Safety Checklist', 'Surgical Procedure', 'Post-Op Recovery'],
+          deviationsPossible: ['WHO Surgical Safety Checklist', 'Site Marking & Consent'],
+          diagnoses: ['Laparoscopic Cholecystectomy', 'Emergency Appendectomy', 'Total Knee Arthroplasty']
+        },
+        'Cardiology': {
+          total: day === 0 ? 30 : 15,
+          deviatedCount: day === 0 ? 9 : (day === 7 ? 3 : 1),
+          steps: ['Admission', 'Rapid 12-Lead ECG', 'Biomarker Lab', 'Cath Lab Activation', 'Medication Verification', 'Angioplasty Intervention'],
+          deviationsPossible: ['Rapid 12-Lead ECG', 'Cath Lab Activation', 'Medication Verification'],
+          diagnoses: ['ST-Elevation Myocardial Infarction', 'Unstable Angina Pectoris', 'Acute Coronary Syndrome']
+        },
+        'General Ward': {
+          total: day === 0 ? 25 : 12,
+          deviatedCount: day === 0 ? 4 : (day === 7 ? 2 : 1),
+          steps: ['Admission', 'Nursing Intake', 'Physician Rounds', 'Bedside Medication Scan', 'Discharge Reconciliation'],
+          deviationsPossible: ['Bedside Medication Scan', 'Discharge Reconciliation'],
+          diagnoses: ['Community-Acquired Pneumonia', 'Post-Surgical Convalescence', 'Type 2 Diabetes Decompensation']
+        }
+      };
 
-      for (let i = 1; i <= traceCount; i++) {
-        const caseId = `ICU-${dStr.replace(/-/g, '')}-${String(i).padStart(3, '0')}`;
-        const isSkipped = i <= skippedCount;
+      for (const dept of departments) {
+        const cfg = traceConfigs[dept];
+        const deptPrefix = dept.substring(0, 3).toUpperCase();
 
-        const events = [
-          { activity: 'Admission', timestamp: new Date(dayDate.getTime() - (i * 1800000)), resource: 'Triage Nurse', status: 'COMPLETED', durationMinutes: 10 },
-          { activity: 'Triage', timestamp: new Date(dayDate.getTime() - (i * 1800000) + 600000), resource: 'Duty Physician', status: 'COMPLETED', durationMinutes: 15 },
-          { activity: 'Lab', timestamp: new Date(dayDate.getTime() - (i * 1800000) + 1500000), resource: 'Lab Tech', status: 'COMPLETED', durationMinutes: 25 }
-        ];
+        for (let i = 1; i <= cfg.total; i++) {
+          const caseId = `${deptPrefix}-${dStr.replace(/-/g, '')}-${String(i).padStart(3, '0')}`;
+          const isDeviated = i <= cfg.deviatedCount;
+          const skippedStep = isDeviated ? cfg.deviationsPossible[i % cfg.deviationsPossible.length] : null;
 
-        if (!isSkipped) {
-          events.push({
-            activity: 'Medication Verification',
-            timestamp: new Date(dayDate.getTime() - (i * 1800000) + 3000000),
-            resource: 'Lead ICU Pharmacist',
-            status: 'COMPLETED',
-            durationMinutes: 10
+          const events = [];
+          let currentStepTime = dayDate.getTime() - (i * 2400000);
+
+          for (const stepName of cfg.steps) {
+            if (isDeviated && stepName === skippedStep) {
+              continue; // Skip mandatory activity
+            }
+            currentStepTime += 900000; // +15 mins
+            events.push({
+              activity: stepName,
+              timestamp: new Date(currentStepTime),
+              resource: `${dept} Clinical Team`,
+              status: 'COMPLETED',
+              durationMinutes: stepName.includes('Procedure') || stepName.includes('Intervention') ? 60 : 15
+            });
+          }
+
+          const traceEvId = `EV-${deptPrefix}-${dStr.replace(/-/g, '')}-01`;
+
+          allPathwaysToInsert.push({
+            caseId,
+            department: dept,
+            events,
+            timestamp: dayDate,
+            isCompliant: !isDeviated,
+            deviations: isDeviated ? [`Skipped mandatory clinical step: ${skippedStep}`] : [],
+            admissionDiagnosis: cfg.diagnoses[i % cfg.diagnoses.length],
+            evidenceId: traceEvId,
+            verificationStatus: 'VERIFIED'
           });
         }
-
-        events.push({
-          activity: 'Treatment',
-          timestamp: new Date(dayDate.getTime() - (i * 1800000) + 4200000),
-          resource: 'Intensivist Specialist',
-          status: 'COMPLETED',
-          durationMinutes: 50
-        });
-
-        const traceEvId = `EV-TRACE-${caseId}`;
-
-        allPathwaysToInsert.push({
-          caseId,
-          department: 'ICU',
-          events,
-          timestamp: dayDate,
-          isCompliant: !isSkipped,
-          deviations: isSkipped ? ['Skipped mandatory step: Medication Verification'] : [],
-          admissionDiagnosis: isSkipped ? 'Acute Respiratory Distress' : 'Post-Op Monitoring',
-          evidenceId: traceEvId,
-          verificationStatus: 'VERIFIED'
-        });
       }
     }
   }

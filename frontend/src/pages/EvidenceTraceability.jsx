@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { evidenceApi, complianceApi, riskApi, capaApi } from '../services/api';
@@ -33,10 +33,13 @@ import {
 } from 'lucide-react';
 
 export default function EvidenceTraceability() {
+  const [searchParams] = useSearchParams();
+  const querySearch = searchParams.get('search');
+
   const { selectedDepartment, refreshKey } = useApp();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('PENDING_AUDIT'); // 'PENDING_AUDIT' | 'SEALED_LEDGER' | 'TRACE_FLOW'
+  const [activeTab, setActiveTab] = useState(querySearch ? 'SEALED_LEDGER' : 'PENDING_AUDIT'); // 'PENDING_AUDIT' | 'SEALED_LEDGER' | 'TRACE_FLOW'
   const [evidenceList, setEvidenceList] = useState([]);
   const [integrityReport, setIntegrityReport] = useState(null);
   const [standards, setStandards] = useState([]);
@@ -45,8 +48,16 @@ export default function EvidenceTraceability() {
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [sealing, setSealing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(querySearch || '');
   const [selectedType, setSelectedType] = useState('ALL');
+
+  useEffect(() => {
+    if (querySearch) {
+      setSearchQuery(querySearch);
+      setActiveTab('SEALED_LEDGER');
+    }
+  }, [querySearch]);
+
 
   // Modals
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
