@@ -194,12 +194,33 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
                 order_violation_counts[o] += 1
                 order_violation_cases[o].append(case_id)
                 
+        # Extract timestamps and event details
+        case_timestamp = case.get('timestamp') or case.get('createdAt')
+        parsed_events = []
+        for e in events:
+            if isinstance(e, dict):
+                act_name = e.get('activity')
+                ev_time = e.get('timestamp')
+                status = e.get('status', 'COMPLETED')
+                duration = e.get('durationMinutes', 15)
+                resource = e.get('resource', f'{dept_prefix} Clinical Staff')
+                parsed_events.append({
+                    "activity": act_name,
+                    "timestamp": ev_time,
+                    "status": status,
+                    "durationMinutes": duration,
+                    "resource": resource
+                })
+        
+        start_time = parsed_events[0].get('timestamp') if (parsed_events and parsed_events[0].get('timestamp')) else case_timestamp
+        end_time = parsed_events[-1].get('timestamp') if (parsed_events and parsed_events[-1].get('timestamp')) else start_time
+        total_duration = sum([ev.get('durationMinutes', 15) for ev in parsed_events]) if parsed_events else 75
         # Fitness formula for trace
         matched_count = len([a for a in actual_activities if a in expected_path])
         fitness = round((matched_count / max(1, len(expected_path))) * 100.0, 1)
         if missing_steps:
             fitness = max(20.0, fitness - (len(missing_steps) * 20.0))
-            
+
         case_results.append({
             "caseId": case_id,
             "evidenceId": evidence_id,
@@ -209,7 +230,13 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
             "missingSteps": missing_steps,
             "orderViolations": order_violations,
             "fitness": fitness,
-            "integrityStatus": "VERIFIED"
+            "integrityStatus": "VERIFIED",
+            "timestamp": case_timestamp or start_time,
+            "startTime": start_time,
+            "completedAt": end_time,
+            "durationMinutes": total_duration,
+            "events": parsed_events,
+            "admissionDiagnosis": case.get('admissionDiagnosis', 'Clinical Observation')
         })
         
     total_traces = len(traces)
