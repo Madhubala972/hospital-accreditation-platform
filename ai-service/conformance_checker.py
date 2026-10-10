@@ -110,21 +110,22 @@ STANDARD_MAPPING = {
     }
 }
 
-def get_deviation_evidence_id(dept_prefix, activity):
+def get_deviation_evidence_id(dept_prefix, activity, date_str="20261008"):
+    date_part = date_str or "20261008"
     mapping = {
-        ("ICU", "Central Line Sterile Dressing"): "EV-ICU-HIC2-20261008-01",
-        ("ICU", "Medication Verification"): "EV-ICU-COP6-20261008-02",
-        ("CAR", "Rapid 12-Lead ECG"): "EV-CAR-COP12-20261008-01",
-        ("CAR", "Cath Lab Activation"): "EV-CAR-AAC3-20261008-02",
-        ("CAR", "Medication Verification"): "EV-CAR-COP6-20261008-03",
-        ("SUR", "WHO Surgical Safety Checklist"): "EV-SUR-IPSG4-20261008-01",
-        ("SUR", "Site Marking & Consent"): "EV-SUR-IPSG1-20261008-02",
-        ("EME", "Acuity Triage"): "EV-EME-AAC4-20261008-01",
-        ("EME", "Diagnostic Imaging"): "EV-EME-COP4-20261008-02",
-        ("GEN", "Bedside Medication Scan"): "EV-GEN-COP6-20261008-01",
-        ("GEN", "Discharge Reconciliation"): "EV-GEN-PRE3-20261008-02"
+        ("ICU", "Central Line Sterile Dressing"): f"EV-ICU-HIC2-{date_part}-01",
+        ("ICU", "Medication Verification"): f"EV-ICU-COP6-{date_part}-02",
+        ("CAR", "Rapid 12-Lead ECG"): f"EV-CAR-COP12-{date_part}-01",
+        ("CAR", "Cath Lab Activation"): f"EV-CAR-AAC3-{date_part}-02",
+        ("CAR", "Medication Verification"): f"EV-CAR-COP6-{date_part}-03",
+        ("SUR", "WHO Surgical Safety Checklist"): f"EV-SUR-IPSG4-{date_part}-01",
+        ("SUR", "Site Marking & Consent"): f"EV-SUR-IPSG1-{date_part}-02",
+        ("EME", "Acuity Triage"): f"EV-EME-AAC4-{date_part}-01",
+        ("EME", "Diagnostic Imaging"): f"EV-EME-COP4-{date_part}-02",
+        ("GEN", "Bedside Medication Scan"): f"EV-GEN-COP6-{date_part}-01",
+        ("GEN", "Discharge Reconciliation"): f"EV-GEN-PRE3-{date_part}-02"
     }
-    return mapping.get((dept_prefix, activity), f"EV-{dept_prefix}-20261008-01")
+    return mapping.get((dept_prefix, activity), f"EV-{dept_prefix}-{date_part}-01")
 
 def check_trace_conformance(traces, department="ICU", custom_reference_pathway=None):
     """
@@ -152,9 +153,22 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
     deviated_count = 0
     missing_activity_counts = defaultdict(int)
     missing_activity_cases = defaultdict(list)
+    missing_activity_evidence = {}
     order_violation_counts = defaultdict(int)
     order_violation_cases = defaultdict(list)
     case_results = []
+    
+    # Detect most recent date string across traces
+    latest_date_str = "20261008"
+    for case in traces:
+        ts = case.get('timestamp') or case.get('createdAt')
+        if ts:
+            try:
+                ds = str(ts)[:10].replace('-', '')
+                if len(ds) == 8 and ds.isdigit() and ds > latest_date_str:
+                    latest_date_str = ds
+            except Exception:
+                pass
     
     for idx, case in enumerate(traces):
         case_id = case.get('caseId', f'{dept_prefix}-CASE-{idx+1}')
@@ -179,9 +193,9 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
         # Resolve specific evidence ID based on trace or first missing activity
         if missing_steps:
             first_missing = missing_steps[0]
-            evidence_id = case.get('evidenceId') or get_deviation_evidence_id(dept_prefix, first_missing)
+            evidence_id = case.get('evidenceId') or get_deviation_evidence_id(dept_prefix, first_missing, latest_date_str)
         else:
-            evidence_id = case.get('evidenceId') or f"EV-{dept_prefix}-MET-20261008-03"
+            evidence_id = case.get('evidenceId') or f"EV-{dept_prefix}-MET-{latest_date_str}-03"
         
         if is_compliant:
             compliant_count += 1
@@ -190,6 +204,8 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
             for m in missing_steps:
                 missing_activity_counts[m] += 1
                 missing_activity_cases[m].append(case_id)
+                if case.get('evidenceId'):
+                    missing_activity_evidence[m] = case.get('evidenceId')
             for o in order_violations:
                 order_violation_counts[o] += 1
                 order_violation_cases[o].append(case_id)
@@ -258,7 +274,7 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
             "recommendedCapa": f"Mandate digital verification for '{activity}' prior to clinical handover."
         })
         
-        evidence_id = get_deviation_evidence_id(dept_prefix, activity)
+        evidence_id = missing_activity_evidence.get(activity) or get_deviation_evidence_id(dept_prefix, activity, latest_date_str)
         sample_cases = missing_activity_cases[activity][:3]
         sample_str = ", ".join(sample_cases)
         
@@ -283,7 +299,7 @@ def check_trace_conformance(traces, department="ICU", custom_reference_pathway=N
         
     for violation, count in order_violation_counts.items():
         pct = round((count / total_traces) * 100.0, 1)
-        evidence_id = f"EV-{dept_prefix}-SEQ-20261008-01"
+        evidence_id = f"EV-{dept_prefix}-SEQ-{latest_date_str}-01"
         sample_cases = order_violation_cases[violation][:3]
         
         evidence_msg = f"{count} traces exhibited sequence violation: {violation} (Cases: {', '.join(sample_cases)}) [Evidence: {evidence_id}]"

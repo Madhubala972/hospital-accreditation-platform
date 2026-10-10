@@ -34,23 +34,23 @@ exports.createMetric = async (req, res) => {
       recordedBy: req.user?.name || 'Quality Team'
     });
 
-    // Run risk evaluation asynchronously in the background so the user gets an instant response
-    setImmediate(async () => {
-      try {
-        await riskService.calculateAndStoreDepartmentRisk(department);
-      } catch (riskErr) {
-        console.warn(`[MetricsController] Auto-evaluation warning for ${department}: ${riskErr.message}`);
-      }
-    });
+    // Synchronously evaluate departmental risk (takes only ~200ms) so all dashboards are 100% in sync
+    let updatedRisk = null;
+    try {
+      updatedRisk = await riskService.calculateAndStoreDepartmentRisk(department);
+    } catch (riskErr) {
+      console.warn(`[MetricsController] Auto-evaluation warning for ${department}: ${riskErr.message}`);
+    }
 
     res.status(201).json({
       status: 'success',
       message: `Metrics saved for ${department}. System updated instantly.`,
       metric,
-      riskSummary: {
-        department,
-        evaluated: true
-      }
+      riskSummary: updatedRisk ? {
+        score: updatedRisk.score,
+        category: updatedRisk.category,
+        contributingFactors: updatedRisk.contributingFactors
+      } : null
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });
