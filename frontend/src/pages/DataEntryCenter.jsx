@@ -28,7 +28,10 @@ const STANDARD_ACTIVITIES = [
   'Admission',
   'Triage',
   'Lab',
+  'Nursing Intake',
+  'Physician Rounds',
   'Medication Verification',
+  'Bedside Medication Scan',
   'Treatment',
   'Emergency Examination',
   'Pre-Op Assessment',
@@ -36,6 +39,7 @@ const STANDARD_ACTIVITIES = [
   'Surgical Safety Checklist',
   'Surgical Procedure',
   'Post-Op Recovery',
+  'Discharge Reconciliation',
   'Discharge Planning'
 ];
 
@@ -132,6 +136,18 @@ export default function DataEntryCenter() {
         notes: 'Standard accredited operating range.'
       });
       notify('Loaded Standard Accredited Preset', 'info');
+    } else if (type === 'WARD') {
+      setMetricForm({
+        department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'General Ward',
+        occupancyRate: 84.0,
+        avgWaitingTime: 24,
+        infectionRate: 1.1,
+        staffingLevel: 0.38,
+        incidentCount: 1,
+        pathwayConformance: 92.5,
+        notes: 'General Medical Ward: Routine shift operations, high bed census turnover.'
+      });
+      notify('Loaded General Ward Quality Preset', 'info');
     }
   };
 
@@ -200,6 +216,34 @@ export default function DataEntryCenter() {
         ]
       });
       notify('Loaded Surgery WHO Safety Checklist Preset', 'info');
+    } else if (type === 'WARD_COMPLIANT') {
+      setPathwayForm({
+        caseId: `GEN-CASE-${padNum}`,
+        department: 'General Ward',
+        admissionDiagnosis: 'Inpatient Post-Surgical Convalescence',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Admission', resource: 'Admissions Desk', durationMinutes: 10 },
+          { activity: 'Nursing Intake', resource: 'Primary Ward Sister', durationMinutes: 15 },
+          { activity: 'Physician Rounds', resource: 'Attending Physician', durationMinutes: 20 },
+          { activity: 'Bedside Medication Scan', resource: 'Handheld Barcode Scanner', durationMinutes: 10 },
+          { activity: 'Discharge Reconciliation', resource: 'Lead Clinical Pharmacist', durationMinutes: 15 }
+        ]
+      });
+      notify('Loaded General Ward 100% Compliant Protocol Preset', 'info');
+    } else if (type === 'WARD_DEVIATED') {
+      setPathwayForm({
+        caseId: `GEN-DEV-${padNum}`,
+        department: 'General Ward',
+        admissionDiagnosis: 'Exacerbation of Chronic Bronchitis',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Admission', resource: 'Admissions Desk', durationMinutes: 10 },
+          { activity: 'Nursing Intake', resource: 'Primary Ward Sister', durationMinutes: 15 },
+          { activity: 'Physician Rounds', resource: 'Attending Physician', durationMinutes: 20 }
+        ]
+      });
+      notify('Loaded General Ward Deviated Preset (Missing Barcode Scan & Discharge)', 'info');
     }
   };
 
@@ -479,6 +523,13 @@ export default function DataEntryCenter() {
               >
                 🛡️ Standard Normal (Surgery)
               </button>
+              <button
+                type="button"
+                onClick={() => applyMetricPreset('WARD')}
+                className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-[11px] font-bold border border-teal-200 transition"
+              >
+                🏥 General Ward (Census)
+              </button>
             </div>
 
             <form onSubmit={handleMetricSubmit} className="space-y-4 text-xs">
@@ -684,6 +735,20 @@ export default function DataEntryCenter() {
               className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 transition"
             >
               ⚡ Surgery WHO Safety Checklist
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('WARD_COMPLIANT')}
+              className="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 text-[11px] font-bold border border-teal-200 transition"
+            >
+              🏥 General Ward Compliant
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('WARD_DEVIATED')}
+              className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200 transition"
+            >
+              ⚠️ General Ward Deviated
             </button>
           </div>
 

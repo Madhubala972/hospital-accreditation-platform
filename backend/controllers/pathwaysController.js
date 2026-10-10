@@ -49,6 +49,8 @@ exports.createTrace = async (req, res) => {
       else if (firstMissing === 'Site Marking & Consent') { standardCode = 'JCI-IPSG.1'; evCode = 'IPSG1'; suffix = '02'; }
       else if (firstMissing === 'Acuity Triage') { standardCode = 'NABH-AAC.4'; evCode = 'AAC4'; suffix = '01'; }
       else if (firstMissing === 'Diagnostic Imaging') { standardCode = 'NABH-COP.4'; evCode = 'COP4'; suffix = '02'; }
+      else if (firstMissing === 'Nursing Intake') { standardCode = 'NABH-HRM.3'; evCode = 'HRM3'; suffix = '01'; }
+      else if (firstMissing === 'Physician Rounds') { standardCode = 'NABH-COP.6'; evCode = 'COP6'; suffix = '02'; }
       else if (firstMissing === 'Bedside Medication Scan') { standardCode = 'NABH-COP.6'; evCode = 'COP6'; suffix = '01'; }
       else if (firstMissing === 'Discharge Reconciliation') { standardCode = 'NABH-PRE.3'; evCode = 'PRE3'; suffix = '02'; }
     }

@@ -25,16 +25,16 @@ const aiService = {
     }).sort({ timestamp: -1 }).lean();
 
     const activeAlerts = await Alert.find({ 
-      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery'] } : targetDept,
+      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'] } : targetDept,
       status: 'OPEN'
     }).limit(3).lean();
 
     const activeCapas = await CapaPlan.find({
-      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery'] } : targetDept
+      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'] } : targetDept
     }).limit(3).lean();
 
     const departmentEvidence = await AccreditationEvidence.find({
-      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery'] } : targetDept
+      department: targetDept === 'Hospital-Wide' ? { $in: ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'] } : targetDept
     }).sort({ recordedAt: -1 }).limit(5).lean();
 
     // Minimal context payload

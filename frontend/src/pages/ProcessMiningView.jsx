@@ -76,13 +76,13 @@ export default function ProcessMiningView() {
   const handleOpenCapaModal = (dev) => {
     const prob = `[CLINICAL DEVIATION] ${dev.activity} in ${targetDept}: ${dev.rootCause || 'Mandatory clinical protocol step was bypassed.'}`;
     const act = dev.recommendedCapa || `Execute mandatory protocol verification and clinical retraining for '${dev.activity}'.`;
-    const code = dev.standardCode || (targetDept === 'ICU' ? 'NABH-COP.6' : 'NABH-PROTOCOL');
+    const code = dev.standardCode || (targetDept === 'General Ward' ? 'NABH-COP.6' : targetDept === 'ICU' ? 'NABH-COP.6' : 'NABH-PROTOCOL');
     
     setCapaForm({
       problem: prob,
       department: targetDept,
       action: act,
-      responsiblePerson: user?.name || (targetDept === 'ICU' ? 'Dr. Arthur Vance (ICU Quality Lead)' : 'Clinical Quality Lead'),
+      responsiblePerson: user?.name || (targetDept === 'General Ward' ? 'Dr. Rajesh Patel (General Ward Lead)' : targetDept === 'ICU' ? 'Dr. Arthur Vance (ICU Quality Lead)' : 'Clinical Quality Lead'),
       deadline: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
       priority: dev.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
       standardCode: code,
@@ -900,7 +900,7 @@ export default function ProcessMiningView() {
                     onClick={() => {
                       const dev = (deviations || []).find(d => selectedCaseForAudit.missingSteps.includes(d.activity)) || {
                         activity: selectedCaseForAudit.missingSteps[0],
-                        standardCode: targetDept === 'ICU' ? 'NABH-COP.6' : 'NABH-PROTOCOL',
+                        standardCode: targetDept === 'General Ward' ? 'NABH-COP.6' : targetDept === 'ICU' ? 'NABH-COP.6' : 'NABH-PROTOCOL',
                         severity: 'CRITICAL',
                         riskContribution: 20,
                         evidenceId: selectedCaseForAudit.evidenceId
