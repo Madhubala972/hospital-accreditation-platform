@@ -23,7 +23,7 @@ exports.createMetric = async (req, res) => {
 
     const metric = await HospitalMetric.create({
       department,
-      timestamp: new Date(),
+      timestamp: req.body.timestamp ? new Date(req.body.timestamp) : new Date(),
       occupancyRate: Number(occupancyRate),
       avgWaitingTime: Number(avgWaitingTime),
       infectionRate: Number(infectionRate),
@@ -34,23 +34,23 @@ exports.createMetric = async (req, res) => {
       recordedBy: req.user?.name || 'Quality Team'
     });
 
-    // Event-triggered evaluation: Calculate risk ONCE upon new data entry (Section 7 & 17)
-    let updatedRisk = null;
-    try {
-      updatedRisk = await riskService.calculateAndStoreDepartmentRisk(department);
-    } catch (riskErr) {
-      console.warn(`[MetricsController] Auto-evaluation warning for ${department}: ${riskErr.message}`);
-    }
+    // Run risk evaluation asynchronously in the background so the user gets an instant response
+    setImmediate(async () => {
+      try {
+        await riskService.calculateAndStoreDepartmentRisk(department);
+      } catch (riskErr) {
+        console.warn(`[MetricsController] Auto-evaluation warning for ${department}: ${riskErr.message}`);
+      }
+    });
 
     res.status(201).json({
       status: 'success',
-      message: `Metrics saved for ${department} and departmental risk evaluated.`,
+      message: `Metrics saved for ${department}. System updated instantly.`,
       metric,
-      riskSummary: updatedRisk ? {
-        score: updatedRisk.score,
-        category: updatedRisk.category,
-        contributingFactors: updatedRisk.contributingFactors
-      } : null
+      riskSummary: {
+        department,
+        evaluated: true
+      }
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });

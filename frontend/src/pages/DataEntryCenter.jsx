@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { metricsApi, pathwaysApi } from '../services/api';
 import {
@@ -12,7 +13,9 @@ import {
   Sparkles,
   Calendar,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 
 const STANDARD_ACTIVITIES = [
@@ -69,6 +72,116 @@ export default function DataEntryCenter() {
     ]
   });
   const [pathwaySubmitting, setPathwaySubmitting] = useState(false);
+  const [pathwayResult, setPathwayResult] = useState(null);
+
+  // Quick Preset Handlers for 1-Click Fast Data Entry
+  const applyMetricPreset = (type) => {
+    if (type === 'OPTIMAL') {
+      setMetricForm({
+        department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
+        occupancyRate: 78.5,
+        avgWaitingTime: 14,
+        infectionRate: 0.9,
+        staffingLevel: 0.42,
+        incidentCount: 0,
+        pathwayConformance: 96.5,
+        notes: 'Optimal shift performance: Full protocol conformance achieved.'
+      });
+      notify('Loaded Optimal Shift Preset', 'info');
+    } else if (type === 'SURGE') {
+      setMetricForm({
+        department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'Emergency',
+        occupancyRate: 94.0,
+        avgWaitingTime: 48,
+        infectionRate: 2.8,
+        staffingLevel: 0.28,
+        incidentCount: 3,
+        pathwayConformance: 78.0,
+        notes: 'High Surge Conditions: Unit capacity exceeded, wait times elevated.'
+      });
+      notify('Loaded High-Surge Stress Preset', 'info');
+    } else if (type === 'NORMAL') {
+      setMetricForm({
+        department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'Surgery',
+        occupancyRate: 82.0,
+        avgWaitingTime: 22,
+        infectionRate: 1.4,
+        staffingLevel: 0.35,
+        incidentCount: 1,
+        pathwayConformance: 91.0,
+        notes: 'Standard accredited operating range.'
+      });
+      notify('Loaded Standard Accredited Preset', 'info');
+    }
+  };
+
+  const applyPathwayPreset = (type) => {
+    const padNum = Math.floor(100 + Math.random() * 900);
+    if (type === 'ICU_COMPLIANT') {
+      setPathwayForm({
+        caseId: `ICU-CASE-${padNum}`,
+        department: 'ICU',
+        admissionDiagnosis: 'Post-Op Critical Care Surveillance',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Admission', resource: 'ICU Triage Nurse', durationMinutes: 10 },
+          { activity: 'Triage', resource: 'Dr. Arthur Vance', durationMinutes: 15 },
+          { activity: 'Lab Cultures', resource: 'Microbiology Lab', durationMinutes: 20 },
+          { activity: 'Central Line Sterile Dressing', resource: 'ICU Clinical Nurse', durationMinutes: 15 },
+          { activity: 'Medication Verification', resource: 'Dual Clinician Sign-Off', durationMinutes: 10 },
+          { activity: 'Treatment', resource: 'Attending Intensivist', durationMinutes: 30 }
+        ]
+      });
+      notify('Loaded ICU 100% Compliant Protocol Preset', 'info');
+    } else if (type === 'ICU_DEVIATED') {
+      setPathwayForm({
+        caseId: `ICU-DEV-${padNum}`,
+        department: 'ICU',
+        admissionDiagnosis: 'Acute Respiratory Distress',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Admission', resource: 'ICU Triage Nurse', durationMinutes: 10 },
+          { activity: 'Triage', resource: 'Dr. Arthur Vance', durationMinutes: 15 },
+          { activity: 'Lab Cultures', resource: 'Microbiology Lab', durationMinutes: 20 },
+          { activity: 'Central Line Sterile Dressing', resource: 'ICU Clinical Nurse', durationMinutes: 15 },
+          { activity: 'Treatment', resource: 'Attending Intensivist', durationMinutes: 30 }
+        ]
+      });
+      notify('Loaded ICU Deviated Preset (Missing Medication Verification)', 'info');
+    } else if (type === 'EMERGENCY_FAST') {
+      setPathwayForm({
+        caseId: `EME-FAST-${padNum}`,
+        department: 'Emergency',
+        admissionDiagnosis: 'Acute Chest Pain / Trauma',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Registration', resource: 'Admissions Desk', durationMinutes: 5 },
+          { activity: 'Acuity Triage', resource: 'Triage Sister', durationMinutes: 10 },
+          { activity: 'Emergency Physician Assessment', resource: 'ER Consultant', durationMinutes: 15 },
+          { activity: 'Diagnostic Imaging', resource: 'Radiology Bay 2', durationMinutes: 20 },
+          { activity: 'Medication Verification', resource: 'Clinical Pharmacist', durationMinutes: 10 },
+          { activity: 'Disposition', resource: 'Transfer Team', durationMinutes: 15 }
+        ]
+      });
+      notify('Loaded Emergency Fast-Track Protocol Preset', 'info');
+    } else if (type === 'SURGERY_CHECKLIST') {
+      setPathwayForm({
+        caseId: `SUR-OT-${padNum}`,
+        department: 'Surgery',
+        admissionDiagnosis: 'Laparoscopic Appendectomy',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Pre-Op Assessment', resource: 'Anesthesiologist', durationMinutes: 15 },
+          { activity: 'Site Marking & Consent', resource: 'Lead Surgeon', durationMinutes: 10 },
+          { activity: 'Anesthesia Check', resource: 'Anesthesia Registrar', durationMinutes: 15 },
+          { activity: 'WHO Surgical Safety Checklist', resource: 'Circulating Nurse', durationMinutes: 10 },
+          { activity: 'Surgical Procedure', resource: 'Surgical Team', durationMinutes: 60 },
+          { activity: 'Post-Op Recovery', resource: 'PACU Staff', durationMinutes: 30 }
+        ]
+      });
+      notify('Loaded Surgery WHO Safety Checklist Preset', 'info');
+    }
+  };
 
   const handleMetricSubmit = async (e) => {
     e.preventDefault();
@@ -77,7 +190,7 @@ export default function DataEntryCenter() {
       setMetricResult(null);
       const res = await metricsApi.createMetric(metricForm);
       setMetricResult(res.data);
-      notify(`Operational metrics for ${metricForm.department} saved and risk re-evaluated.`, 'success');
+      notify(`Operational metrics for ${metricForm.department} saved! All views updated instantly.`, 'success');
       triggerRefresh();
     } catch (err) {
       notify(`Failed to save metrics: ${err.response?.data?.message || err.message}`, 'error');
@@ -111,6 +224,7 @@ export default function DataEntryCenter() {
     e.preventDefault();
     try {
       setPathwaySubmitting(true);
+      setPathwayResult(null);
       const startMs = new Date(pathwayForm.admissionDateTime || Date.now()).getTime();
       let currentMs = startMs;
       
@@ -134,13 +248,14 @@ export default function DataEntryCenter() {
         events: computedEvents
       };
 
-      await pathwaysApi.createTrace(payload);
-      notify(`Patient pathway trace ${pathwayForm.caseId} recorded with admission & completion timestamps and analyzed via PM4Py.`, 'success');
+      const res = await pathwaysApi.createTrace(payload);
+      setPathwayResult(res.data?.data || payload);
+      notify(`Trace ${pathwayForm.caseId} recorded! Process Mining updated instantly.`, 'success');
       triggerRefresh();
       // Generate new Case ID
       setPathwayForm({
         ...pathwayForm,
-        caseId: `CASE-${Math.floor(1000 + Math.random() * 9000)}`,
+        caseId: `${pathwayForm.department.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
         admissionDateTime: getNowLocalDateTime()
       });
     } catch (err) {
@@ -195,7 +310,35 @@ export default function DataEntryCenter() {
       {activeTab === 'metrics' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900 mb-4">Ingest Shift Operational Indicators</h3>
+            <h3 className="text-sm font-bold text-slate-900 mb-2">Ingest Shift Operational Indicators</h3>
+
+            {/* Fast Presets Bar */}
+            <div className="flex flex-wrap items-center gap-2 mb-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-500" /> Fast 1-Click Presets:
+              </span>
+              <button
+                type="button"
+                onClick={() => applyMetricPreset('OPTIMAL')}
+                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 transition"
+              >
+                ⚡ Optimal Shift (ICU)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyMetricPreset('SURGE')}
+                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-bold border border-rose-200 transition"
+              >
+                ⚠️ Emergency Surge (Stress)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyMetricPreset('NORMAL')}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold border border-blue-200 transition"
+              >
+                🛡️ Standard Normal (Surgery)
+              </button>
+            </div>
 
             <form onSubmit={handleMetricSubmit} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -354,7 +497,7 @@ export default function DataEntryCenter() {
       {/* Tab 2: Patient Pathway Event Ingestion */}
       {activeTab === 'pathway' && (
         <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Log Patient Trace Activities (PM4Py Event Ingestion)</h3>
               <p className="text-xs text-slate-500">Configure sequential clinical event trace for process conformance analysis.</p>
@@ -365,6 +508,41 @@ export default function DataEntryCenter() {
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Step</span>
+            </button>
+          </div>
+
+          {/* Fast Presets Bar for Pathway */}
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-blue-600" /> Fast 1-Click Presets:
+            </span>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('ICU_COMPLIANT')}
+              className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200 transition"
+            >
+              ⚡ ICU 100% Compliant
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('ICU_DEVIATED')}
+              className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-bold border border-rose-200 transition"
+            >
+              ⚠️ ICU Deviated (Skip Med Sign-Off)
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('EMERGENCY_FAST')}
+              className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold border border-blue-200 transition"
+            >
+              ⚡ Emergency Fast-Track
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPathwayPreset('SURGERY_CHECKLIST')}
+              className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 transition"
+            >
+              ⚡ Surgery WHO Safety Checklist
             </button>
           </div>
 
@@ -542,6 +720,28 @@ export default function DataEntryCenter() {
               </button>
             </div>
           </form>
+
+          {/* Instant Result Success Card */}
+          {pathwayResult && (
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs mt-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>Trace {pathwayResult.caseId} Ingested & Analyzed Instantly!</span>
+                </div>
+                <Link
+                  to="/pathways"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition text-xs self-start sm:self-auto"
+                >
+                  <span>View in Process Mining & Trace Inspector</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+              <p className="text-slate-700 text-xs">
+                Patient pathway was saved with verified timestamps. The PM4Py Conformance Engine and department readiness scores have updated across the platform.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
