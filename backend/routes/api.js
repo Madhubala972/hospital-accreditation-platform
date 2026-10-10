@@ -73,6 +73,7 @@ router.post('/risk/evaluate', riskController.evaluateRisk);
 
 // Alerts Endpoints
 router.get('/alerts', alertsController.getAlerts);
+router.post('/alerts', alertsController.createAlert);
 router.patch('/alerts/:id/status', alertsController.updateAlertStatus);
 
 // CAPA Endpoints

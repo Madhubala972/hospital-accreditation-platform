@@ -32,8 +32,14 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const [criticalAlertTrigger, setCriticalAlertTrigger] = useState(null);
+
   const triggerRefresh = () => {
     setRefreshKey(prev => prev + 1);
+  };
+
+  const triggerSituationPopup = (alert) => {
+    setCriticalAlertTrigger(alert);
   };
 
   const notify = (message, type = 'info') => {
@@ -54,7 +60,10 @@ export const AppProvider = ({ children }) => {
       triggerRefresh,
       notifications,
       notify,
-      showNotification: notify
+      showNotification: notify,
+      criticalAlertTrigger,
+      setCriticalAlertTrigger,
+      triggerSituationPopup
     }}>
       {children}
     </AppContext.Provider>

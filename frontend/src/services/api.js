@@ -60,6 +60,7 @@ export const riskApi = {
 
 export const alertsApi = {
   getAlerts: (department, status, severity) => api.get('/alerts', { params: { department, status, severity } }),
+  createAlert: (data) => api.post('/alerts', data),
   updateStatus: (id, status) => api.patch(`/alerts/${id}/status`, { status }),
 };
 

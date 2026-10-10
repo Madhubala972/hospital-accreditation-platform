@@ -14,6 +14,7 @@ const StaffAuditLogSchema = new mongoose.Schema({
       'SIGN_OUT', 
       'METRIC_SUBMISSION', 
       'CLINICAL_TRACE_LOG', 
+      'INCIDENT_LOGGED',
       'CAPA_ADVANCE', 
       'RISK_EVALUATION', 
       'DEAN_APPROVAL_ACTION', 

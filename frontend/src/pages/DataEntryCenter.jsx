@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { metricsApi, pathwaysApi } from '../services/api';
+import { metricsApi, pathwaysApi, alertsApi } from '../services/api';
 import {
   FilePlus2,
   GitCommit,
@@ -15,7 +15,13 @@ import {
   Clock,
   ShieldCheck,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Siren,
+  AlertTriangle,
+  Flame,
+  ShieldAlert,
+  Building2,
+  Lock
 } from 'lucide-react';
 
 const STANDARD_ACTIVITIES = [
@@ -34,8 +40,8 @@ const STANDARD_ACTIVITIES = [
 ];
 
 export default function DataEntryCenter() {
-  const { selectedDepartment, notify, triggerRefresh } = useApp();
-  const [activeTab, setActiveTab] = useState('metrics'); // 'metrics' | 'pathway'
+  const { selectedDepartment, notify, triggerRefresh, triggerSituationPopup } = useApp();
+  const [activeTab, setActiveTab] = useState('metrics'); // 'metrics' | 'pathway' | 'situation'
 
   // Metric Form State
   const [metricForm, setMetricForm] = useState({
@@ -73,6 +79,20 @@ export default function DataEntryCenter() {
   });
   const [pathwaySubmitting, setPathwaySubmitting] = useState(false);
   const [pathwayResult, setPathwayResult] = useState(null);
+
+  // Critical Situation & Safety Incident Form State (Separate Block)
+  const [situationForm, setSituationForm] = useState({
+    department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
+    title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
+    severity: 'CRITICAL',
+    standardCode: 'HIC.2',
+    reason: 'Elevated procalcitonin & positive catheter-tip culture in Bed 04. Bundle protocol breach detected.',
+    remediation: 'Immediate catheter removal, blood cultures x2, broad-spectrum IV antimicrobials started, ICU clinical audit ordered.',
+    reportedBy: 'Dr. Arthur Vance (ICU Intensivist)',
+    incidentDateTime: getNowLocalDateTime()
+  });
+  const [situationSubmitting, setSituationSubmitting] = useState(false);
+  const [situationResult, setSituationResult] = useState(null);
 
   // Quick Preset Handlers for 1-Click Fast Data Entry
   const applyMetricPreset = (type) => {
@@ -265,6 +285,113 @@ export default function DataEntryCenter() {
     }
   };
 
+  const applySituationPreset = (type) => {
+    if (type === 'ICU_CLABSI') {
+      setSituationForm({
+        department: 'ICU',
+        title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
+        severity: 'CRITICAL',
+        standardCode: 'HIC.2',
+        reason: 'Elevated procalcitonin & positive catheter-tip culture in Bed 04. Bundle protocol breach detected.',
+        remediation: 'Immediate catheter removal, blood cultures x2, broad-spectrum IV antimicrobials started, ICU clinical audit ordered.',
+        reportedBy: 'Dr. Arthur Vance (ICU Intensivist)',
+        incidentDateTime: getNowLocalDateTime()
+      });
+      notify('Loaded ICU CLABSI Incident Preset', 'info');
+    } else if (type === 'CARDIO_ECG') {
+      setSituationForm({
+        department: 'Cardiology',
+        title: 'Delayed Door-to-Balloon STEMI Escalation',
+        severity: 'HIGH',
+        standardCode: 'COP.6',
+        reason: 'Cath lab mobilization delay of 24 minutes exceeding 90-minute benchmark during off-hours emergency intake.',
+        remediation: 'Emergency on-call cardiac team dispatched, intervention successful, root-cause team briefing scheduled.',
+        reportedBy: 'Dr. Priya Sharma (Interventional Cardiologist)',
+        incidentDateTime: getNowLocalDateTime()
+      });
+      notify('Loaded Cardiology STEMI Latency Preset', 'info');
+    } else if (type === 'ER_OVERFLOW') {
+      setSituationForm({
+        department: 'Emergency',
+        title: 'Severe Emergency Department Surge & Triage Divert Risk',
+        severity: 'CRITICAL',
+        standardCode: 'COP.1',
+        reason: 'ED bed occupancy at 145%, critical care resuscitation bays full, ambulance triage wait exceeding 45 minutes.',
+        remediation: 'Activated Hospital Disaster Surge Plan Stage 2, decanted 6 stable ward beds, expedited pending discharges.',
+        reportedBy: 'Dr. Marcus Brody (ED Medical Director)',
+        incidentDateTime: getNowLocalDateTime()
+      });
+      notify('Loaded Emergency Room Surge Overflow Preset', 'info');
+    } else if (type === 'SURGERY_TIMEOUT') {
+      setSituationForm({
+        department: 'Surgery',
+        title: 'WHO Surgical Safety Sign-In Pause Non-Compliance',
+        severity: 'HIGH',
+        standardCode: 'IPSG.4',
+        reason: 'Surgical incision begun prior to full circulating nurse time-out verification in OT-3.',
+        remediation: 'Immediate procedure hold called, full checklist verification executed with dual confirmation, incident logged.',
+        reportedBy: 'Sister Martha Jenkins (OT Head Nurse)',
+        incidentDateTime: getNowLocalDateTime()
+      });
+      notify('Loaded Surgical Safety Checklist Omission Preset', 'info');
+    } else if (type === 'WARD_BARCODE') {
+      setSituationForm({
+        department: 'General Ward',
+        title: 'High-Alert Medication Barcode Scanning Bypass',
+        severity: 'MEDIUM',
+        standardCode: 'MOM.5',
+        reason: 'IV Potassium infusion administered manually without standard handheld barcode medication scan verification.',
+        remediation: 'Infusion halted, dosage cross-checked with pharmacy, handheld scanner re-calibrated and replaced.',
+        reportedBy: 'Staff Nurse R. Dave (Ward 4B)',
+        incidentDateTime: getNowLocalDateTime()
+      });
+      notify('Loaded Medication Safety Scan Bypass Preset', 'info');
+    }
+  };
+
+  const handleSituationSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setSituationSubmitting(true);
+      setSituationResult(null);
+
+      const payload = {
+        department: situationForm.department,
+        title: situationForm.title,
+        severity: situationForm.severity,
+        standardCode: situationForm.standardCode,
+        reason: situationForm.reason,
+        recommendedCapa: situationForm.remediation,
+        reportedBy: situationForm.reportedBy,
+        incidentDate: situationForm.incidentDateTime ? new Date(situationForm.incidentDateTime) : new Date()
+      };
+
+      const res = await alertsApi.createAlert(payload);
+      const alertData = res.data?.data || res.data;
+      const evidenceId = res.data?.evidenceId || alertData?.supportingEvidenceIds?.[0];
+      const resultObj = {
+        ...alertData,
+        evidenceId,
+        riskSummary: res.data?.riskSummary
+      };
+
+      setSituationResult(resultObj);
+      notify(`Critical situation logged! Sealed Evidence #${evidenceId} minted in blockchain ledger.`, 'success');
+      triggerRefresh();
+
+      // Trigger the medium-sized popup anchored on the right side!
+      triggerSituationPopup({
+        ...alertData,
+        evidenceId,
+        supportingEvidenceIds: evidenceId ? [evidenceId] : alertData.supportingEvidenceIds
+      });
+    } catch (err) {
+      notify(`Failed to log critical situation: ${err.response?.data?.message || err.message}`, 'error');
+    } finally {
+      setSituationSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -302,6 +429,20 @@ export default function DataEntryCenter() {
             }`}
           >
             2. Patient Pathway Event Log Ingestion
+          </button>
+          <button
+            onClick={() => setActiveTab('situation')}
+            className={`text-xs font-bold pb-2 border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === 'situation'
+                ? 'border-rose-600 text-rose-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Siren className="w-3.5 h-3.5 text-rose-600" />
+            <span>3. Critical Situations & Clinical Safety Incidents</span>
+            <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-mono rounded-full font-bold">
+              ALERT
+            </span>
           </button>
         </div>
       </div>
@@ -742,6 +883,288 @@ export default function DataEntryCenter() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab 3: Critical Situations & Clinical Safety Incidents (Dedicated Manual Entry Block) */}
+      {activeTab === 'situation' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white border border-rose-100 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-200">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Manual Critical Situation & Incident Logger</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Immediately records critical patient safety deviations, updates departmental risk ratings, logs to staff audit trail, and generates an unalterable SHA-256 cryptographic evidence block.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Fast 1-Click Situation Presets */}
+            <div className="flex flex-wrap items-center gap-2 my-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-500" /> 1-Click Fast Presets:
+              </span>
+              <button
+                type="button"
+                onClick={() => applySituationPreset('ICU_CLABSI')}
+                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-bold border border-rose-200 transition"
+              >
+                🚨 ICU CLABSI Alarm
+              </button>
+              <button
+                type="button"
+                onClick={() => applySituationPreset('CARDIO_ECG')}
+                className="px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-800 text-[11px] font-bold border border-orange-200 transition"
+              >
+                ⚡ Cardio STEMI Delay
+              </button>
+              <button
+                type="button"
+                onClick={() => applySituationPreset('ER_OVERFLOW')}
+                className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-800 text-[11px] font-bold border border-red-200 transition"
+              >
+                ⚠️ ER Surge Overflow
+              </button>
+              <button
+                type="button"
+                onClick={() => applySituationPreset('SURGERY_TIMEOUT')}
+                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 transition"
+              >
+                🛡️ OT Safety Time-Out
+              </button>
+              <button
+                type="button"
+                onClick={() => applySituationPreset('WARD_BARCODE')}
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200 transition"
+              >
+                💊 Med Scan Bypass
+              </button>
+            </div>
+
+            <form onSubmit={handleSituationSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Target Department *</label>
+                  <select
+                    value={situationForm.department}
+                    onChange={(e) => setSituationForm({ ...situationForm, department: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500 font-medium"
+                  >
+                    {['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Severity Level *</label>
+                  <select
+                    value={situationForm.severity}
+                    onChange={(e) => setSituationForm({ ...situationForm, severity: e.target.value })}
+                    className={`w-full border rounded-lg p-2.5 font-bold focus:outline-none ${
+                      situationForm.severity === 'CRITICAL' ? 'bg-rose-50 border-rose-300 text-rose-800' :
+                      situationForm.severity === 'HIGH' ? 'bg-orange-50 border-orange-300 text-orange-800' :
+                      'bg-amber-50 border-amber-300 text-amber-800'
+                    }`}
+                  >
+                    <option value="CRITICAL">🔴 CRITICAL (+30% Department Risk)</option>
+                    <option value="HIGH">🟠 HIGH (+20% Department Risk)</option>
+                    <option value="MEDIUM">🟡 MEDIUM (+10% Department Risk)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Accreditation Standard Code *</label>
+                  <input
+                    type="text"
+                    value={situationForm.standardCode}
+                    onChange={(e) => setSituationForm({ ...situationForm, standardCode: e.target.value })}
+                    placeholder="e.g. HIC.2, COP.6, IPSG.4"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-800 focus:outline-none focus:border-rose-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Incident Title / Alert Summary *</label>
+                <input
+                  type="text"
+                  value={situationForm.title}
+                  onChange={(e) => setSituationForm({ ...situationForm, title: e.target.value })}
+                  placeholder="e.g. Central Line Protocol Omission / Elevated Infection Rate"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-semibold focus:outline-none focus:border-rose-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Clinical Observation / Root Variance *</label>
+                <textarea
+                  value={situationForm.reason}
+                  onChange={(e) => setSituationForm({ ...situationForm, reason: e.target.value })}
+                  rows={2}
+                  placeholder="Describe the clinical deviation or safety violation observed..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Immediate Remediation Protocol / Counter-Measure</label>
+                <textarea
+                  value={situationForm.remediation}
+                  onChange={(e) => setSituationForm({ ...situationForm, remediation: e.target.value })}
+                  rows={2}
+                  placeholder="Immediate clinical corrective action, staff reallocation, or isolation step..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Reported By (Clinician / Auditor) *</label>
+                  <input
+                    type="text"
+                    value={situationForm.reportedBy}
+                    onChange={(e) => setSituationForm({ ...situationForm, reportedBy: e.target.value })}
+                    placeholder="e.g. Dr. Arthur Vance"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Incident Timestamp *</label>
+                  <input
+                    type="datetime-local"
+                    value={situationForm.incidentDateTime}
+                    onChange={(e) => setSituationForm({ ...situationForm, incidentDateTime: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500 font-mono text-xs"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={situationSubmitting}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-600 via-rose-700 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold rounded-xl transition shadow-lg shadow-rose-600/25 disabled:opacity-50"
+                >
+                  <Siren className="w-4 h-4" />
+                  <span>{situationSubmitting ? 'Minting Evidence & Alerting...' : '🚨 Log Situation & Open Right-Side Alert Popup'}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Instant Result Card */}
+            {situationResult && (
+              <div className="mt-5 p-4 rounded-2xl bg-rose-50/80 border border-rose-200 space-y-3 animate-fade-in text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-rose-900 font-bold">
+                    <CheckCircle2 className="w-5 h-5 text-rose-600 shrink-0" />
+                    <span>Critical Situation Logged & Sealed Successfully!</span>
+                  </div>
+                  <button
+                    onClick={() => triggerSituationPopup(situationResult)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition text-xs self-start sm:self-auto"
+                  >
+                    <Siren className="w-3.5 h-3.5" />
+                    <span>Re-open Right-Side Alert Popup</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">Evidence Ledger ID</div>
+                    <div className="font-mono font-bold text-slate-800 text-xs mt-0.5">{situationResult.evidenceId || 'MINTED'}</div>
+                    <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> SHA-256 Verified
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">Department Risk Update</div>
+                    <div className="font-mono font-bold text-slate-800 text-xs mt-0.5">
+                      {situationResult.riskSummary ? `${situationResult.riskSummary.score}% (${situationResult.riskSummary.category})` : 'Recalculated'}
+                    </div>
+                    <div className="text-[10px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                      <Flame className="w-3 h-3" /> Risk Adjusted Live
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">Incident Status</div>
+                    <div className="font-mono font-bold text-rose-700 text-xs mt-0.5">OPEN (DISPATCHED)</div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                      {new Date(situationResult.createdAt || Date.now()).toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <Link
+                    to="/evidence"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 underline"
+                  >
+                    <span>View in Cryptographic Evidence Vault</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <span className="text-slate-300">|</span>
+                  <Link
+                    to="/capa"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 underline"
+                  >
+                    <span>Create CAPA Remediation Task</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Info Box */}
+          <div className="space-y-4">
+            <div className="bg-gradient-to-br from-rose-50 to-orange-50 border border-rose-200 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
+                <Siren className="w-4 h-4 text-rose-600" />
+                <span>Connected Multi-Process Pipeline</span>
+              </div>
+              <ul className="text-xs text-slate-700 space-y-2 leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <span className="text-rose-600 font-bold">•</span>
+                  <span><strong>Right-Side Floating Popup:</strong> Displays as a medium-sized alert on the bottom right without blocking background interactions.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-rose-600 font-bold">•</span>
+                  <span><strong>Cryptographic Ledger:</strong> Mints an immutable SHA-256 evidence record with verified incident timestamp in MongoDB.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-rose-600 font-bold">•</span>
+                  <span><strong>Synchronous Risk Re-indexing:</strong> Instantly recalculates the target department's risk score and updates the executive dashboard.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-rose-600 font-bold">•</span>
+                  <span><strong>One-Click CAPA Dispatch:</strong> Directly initiates JCI/NABH corrective and preventive action with automated root cause synthesis.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm text-xs space-y-2">
+              <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Accreditation Alignment
+              </span>
+              <p className="text-slate-600 leading-relaxed text-[11px]">
+                Conforms with NABH Continual Quality Improvement (CQI) and JCI International Patient Safety Goals (IPSG). Ensures zero-lag incident escalation.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
