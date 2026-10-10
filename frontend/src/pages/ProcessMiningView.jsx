@@ -186,11 +186,29 @@ export default function ProcessMiningView() {
   const { totalCases, nodes, edges, variants } = miningData;
   const { conformanceRate, compliantTraces, deviatedTraces, deviations, evidence, expectedPath, caseDetails } = conformanceData || {};
 
-  const filteredCases = (caseDetails || []).filter(c => {
+  // Deduplicate cases by caseId so no duplicate cases ever appear in trace audit
+  const uniqueCasesMap = new Map();
+  (caseDetails || []).forEach(c => {
+    if (c.caseId && !uniqueCasesMap.has(c.caseId)) {
+      uniqueCasesMap.set(c.caseId, c);
+    }
+  });
+  const uniqueCases = Array.from(uniqueCasesMap.values());
+
+  const filteredCases = uniqueCases.filter(c => {
     if (selectedCaseFilter === 'COMPLIANT') return c.isCompliant;
     if (selectedCaseFilter === 'DEVIATED') return !c.isCompliant;
     return true;
   });
+
+  // Deduplicate deviations by activity to prevent duplicate deviation cards
+  const uniqueDeviationsMap = new Map();
+  (deviations || []).forEach(d => {
+    if (d.activity && !uniqueDeviationsMap.has(d.activity)) {
+      uniqueDeviationsMap.set(d.activity, d);
+    }
+  });
+  const displayDeviations = Array.from(uniqueDeviationsMap.values());
 
   return (
     <div className="space-y-6">
@@ -320,11 +338,11 @@ export default function ProcessMiningView() {
             </div>
           </div>
           <span className="self-start sm:self-auto text-xs font-mono px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">
-            {deviations?.length || 0} Deviations Detected
+            {displayDeviations?.length || 0} Deviations Detected
           </span>
         </div>
 
-        {(!deviations || deviations.length === 0) ? (
+        {(!displayDeviations || displayDeviations.length === 0) ? (
           <div className="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-200 text-center space-y-1">
             <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
             <div className="text-sm font-bold text-emerald-900">Zero Clinical Protocol Deviations</div>
@@ -332,7 +350,7 @@ export default function ProcessMiningView() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {deviations.map((dev, idx) => (
+            {displayDeviations.map((dev, idx) => (
               <div
                 key={idx}
                 className="p-5 rounded-2xl bg-rose-50/30 border border-rose-200 space-y-3 shadow-xs hover:border-rose-300 transition"

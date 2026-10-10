@@ -21,18 +21,42 @@ exports.createMetric = async (req, res) => {
       });
     }
 
-    const metric = await HospitalMetric.create({
+    const metricDate = req.body.timestamp ? new Date(req.body.timestamp) : new Date();
+    const startOfDay = new Date(metricDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(metricDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    let metric = await HospitalMetric.findOne({
       department,
-      timestamp: req.body.timestamp ? new Date(req.body.timestamp) : new Date(),
-      occupancyRate: Number(occupancyRate),
-      avgWaitingTime: Number(avgWaitingTime),
-      infectionRate: Number(infectionRate),
-      staffingLevel: Number(staffingLevel),
-      incidentCount: Number(incidentCount || 0),
-      pathwayConformance: Number(pathwayConformance !== undefined ? pathwayConformance : 85),
-      notes: notes || '',
-      recordedBy: req.user?.name || 'Quality Team'
+      timestamp: { $gte: startOfDay, $lte: endOfDay }
     });
+
+    if (metric) {
+      metric.occupancyRate = Number(occupancyRate);
+      metric.avgWaitingTime = Number(avgWaitingTime);
+      metric.infectionRate = Number(infectionRate);
+      metric.staffingLevel = Number(staffingLevel);
+      metric.incidentCount = Number(incidentCount || 0);
+      if (pathwayConformance !== undefined) metric.pathwayConformance = Number(pathwayConformance);
+      metric.notes = notes || metric.notes;
+      metric.recordedBy = req.user?.name || metric.recordedBy;
+      metric.timestamp = metricDate;
+      await metric.save();
+    } else {
+      metric = await HospitalMetric.create({
+        department,
+        timestamp: metricDate,
+        occupancyRate: Number(occupancyRate),
+        avgWaitingTime: Number(avgWaitingTime),
+        infectionRate: Number(infectionRate),
+        staffingLevel: Number(staffingLevel),
+        incidentCount: Number(incidentCount || 0),
+        pathwayConformance: Number(pathwayConformance !== undefined ? pathwayConformance : 85),
+        notes: notes || '',
+        recordedBy: req.user?.name || 'Quality Team'
+      });
+    }
 
     // Synchronously evaluate departmental risk (takes only ~200ms) so all dashboards are 100% in sync
     let updatedRisk = null;

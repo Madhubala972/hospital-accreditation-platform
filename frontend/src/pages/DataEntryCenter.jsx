@@ -252,10 +252,10 @@ export default function DataEntryCenter() {
       setPathwayResult(res.data?.data || payload);
       notify(`Trace ${pathwayForm.caseId} recorded! Process Mining updated instantly.`, 'success');
       triggerRefresh();
-      // Generate new Case ID
+      // Generate new unique Case ID
       setPathwayForm({
         ...pathwayForm,
-        caseId: `${pathwayForm.department.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
+        caseId: `${pathwayForm.department.slice(0, 3).toUpperCase()}-CASE-${Date.now().toString().slice(-4)}`,
         admissionDateTime: getNowLocalDateTime()
       });
     } catch (err) {

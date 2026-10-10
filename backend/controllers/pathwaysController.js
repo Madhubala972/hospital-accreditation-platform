@@ -58,8 +58,8 @@ exports.createTrace = async (req, res) => {
     // Ensure Evidence Record exists in AccreditationEvidence blockchain ledger
     let evidenceDoc = await AccreditationEvidence.findOne({ evidenceId });
     if (!evidenceDoc) {
-      const lastEvidence = await AccreditationEvidence.findOne().sort({ chainIndex: -1 }).lean();
-      const prevHash = lastEvidence ? lastEvidence.currentHash : 'GENESIS-BLOCK-0000000000000000';
+      const lastEvidence = await AccreditationEvidence.findOne({ isCryptographicallySealed: true }).sort({ chainIndex: -1 }).lean();
+      const prevHash = lastEvidence ? lastEvidence.currentHash : 'GENESIS_HASH_00000000000000000000000000000000';
       const chainIndex = lastEvidence ? (lastEvidence.chainIndex + 1) : 1;
       
       const payload = {
@@ -72,7 +72,8 @@ exports.createTrace = async (req, res) => {
         isCompliant
       };
 
-      const evHash = crypto.createHash('sha256').update(JSON.stringify(payload) + prevHash).digest('hex');
+      const canonicalString = JSON.stringify(payload, Object.keys(payload).sort());
+      const evHash = crypto.createHash('sha256').update(canonicalString + prevHash).digest('hex');
 
       await AccreditationEvidence.create({
         evidenceId,
@@ -101,17 +102,31 @@ exports.createTrace = async (req, res) => {
       });
     }
 
-    const pathway = await PatientPathway.create({
-      caseId,
-      department,
-      events,
-      admissionDiagnosis: admissionDiagnosis || 'Clinical Observation',
-      timestamp: traceDate,
-      isCompliant,
-      deviations: missingSteps.map(m => `Skipped mandatory clinical step: ${m}`),
-      evidenceId,
-      verificationStatus: 'VERIFIED'
-    });
+    // Prevent duplicate caseIds: update existing case or create a new one
+    let pathway = await PatientPathway.findOne({ caseId });
+    if (pathway) {
+      pathway.department = department;
+      pathway.events = events;
+      pathway.admissionDiagnosis = admissionDiagnosis || pathway.admissionDiagnosis;
+      pathway.timestamp = traceDate;
+      pathway.isCompliant = isCompliant;
+      pathway.deviations = missingSteps.map(m => `Skipped mandatory clinical step: ${m}`);
+      pathway.evidenceId = evidenceId;
+      pathway.verificationStatus = 'VERIFIED';
+      await pathway.save();
+    } else {
+      pathway = await PatientPathway.create({
+        caseId,
+        department,
+        events,
+        admissionDiagnosis: admissionDiagnosis || 'Clinical Observation',
+        timestamp: traceDate,
+        isCompliant,
+        deviations: missingSteps.map(m => `Skipped mandatory clinical step: ${m}`),
+        evidenceId,
+        verificationStatus: 'VERIFIED'
+      });
+    }
 
     // Synchronously run Python conformance check & update latest metric
     let confResult = { conformanceRate: 88.0 };

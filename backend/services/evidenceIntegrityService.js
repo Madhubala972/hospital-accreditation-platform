@@ -37,16 +37,22 @@ const evidenceIntegrityService = {
     dataPayload,
     recordedBy = 'System Conformance Engine'
   }) {
-    // 1. Fetch latest evidence in this department to determine previousHash and chainIndex
-    const lastRecord = await AccreditationEvidence.findOne({ department })
-      .sort({ chainIndex: -1, createdAt: -1 })
+    // 2. Generate unique evidenceId if not provided
+    const evId = evidenceId || `EV-${department.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-5)}`;
+
+    // Check if evidence already exists to avoid duplication
+    const existing = await AccreditationEvidence.findOne({ evidenceId: evId });
+    if (existing) {
+      return existing;
+    }
+
+    // 1. Fetch latest sealed block across the global chain to determine previousHash and chainIndex
+    const lastRecord = await AccreditationEvidence.findOne({ isCryptographicallySealed: true })
+      .sort({ chainIndex: -1 })
       .lean();
 
     const previousHash = lastRecord ? lastRecord.currentHash : 'GENESIS_HASH_00000000000000000000000000000000';
     const chainIndex = lastRecord ? (lastRecord.chainIndex || 0) + 1 : 1;
-
-    // 2. Generate unique evidenceId if not provided
-    const evId = evidenceId || `EV-${department.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-5)}`;
 
     // 3. Compute deterministic cryptographic hash
     const currentHash = computeSha256Hash(dataPayload, previousHash);

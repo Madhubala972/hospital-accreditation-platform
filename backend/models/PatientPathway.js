@@ -11,7 +11,7 @@ const EventItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const PatientPathwaySchema = new mongoose.Schema({
-  caseId: { type: String, required: true, trim: true },
+  caseId: { type: String, required: true, trim: true, unique: true, index: true },
   department: { 
     type: String, 
     required: true, 

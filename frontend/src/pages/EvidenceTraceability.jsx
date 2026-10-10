@@ -25,6 +25,7 @@ import {
   Sparkles,
   FileSignature,
   Clock,
+  Calendar,
   CheckCheck,
   X,
   Layers,
@@ -168,14 +169,41 @@ export default function EvidenceTraceability() {
     }
   };
 
-  // Separate Pending vs Cryptographically Sealed Evidence
-  const pendingItems = evidenceList.filter(
-    (e) => !e.isCryptographicallySealed || e.integrityStatus === 'PENDING_AUDITOR_REVIEW'
-  );
+  // Date & Timestamp formatting helpers for the sealed cryptographic ledger
+  const formatSealedDate = (dateVal) => {
+    if (!dateVal) return 'Oct 10, 2026';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return 'Oct 10, 2026';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
-  const sealedItems = evidenceList.filter(
-    (e) => e.isCryptographicallySealed && e.integrityStatus !== 'PENDING_AUDITOR_REVIEW'
-  );
+  const formatSealedTime = (dateVal) => {
+    if (!dateVal) return '11:00 AM';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '11:00 AM';
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const getEvidenceTimestamp = (ev) => {
+    return ev?.verifiedAt || ev?.recordedAt || ev?.createdAt || ev?.dataPayload?.date || ev?.dataPayload?.timestamp || new Date();
+  };
+
+  // Strictly deduplicate Pending vs Cryptographically Sealed Evidence to prevent duplicate rows
+  const uniquePendingMap = new Map();
+  evidenceList.forEach((e) => {
+    if ((!e.isCryptographicallySealed || e.integrityStatus === 'PENDING_AUDITOR_REVIEW') && !uniquePendingMap.has(e.evidenceId)) {
+      uniquePendingMap.set(e.evidenceId, e);
+    }
+  });
+  const pendingItems = Array.from(uniquePendingMap.values());
+
+  const uniqueSealedMap = new Map();
+  evidenceList.forEach((e) => {
+    if (e.isCryptographicallySealed && e.integrityStatus !== 'PENDING_AUDITOR_REVIEW' && !uniqueSealedMap.has(e.evidenceId)) {
+      uniqueSealedMap.set(e.evidenceId, e);
+    }
+  });
+  const sealedItems = Array.from(uniqueSealedMap.values());
 
   // Filtered sealed items
   const filteredSealedEvidence = sealedItems.filter((e) => {
@@ -590,6 +618,7 @@ export default function EvidenceTraceability() {
                   <th className="py-3 px-4">Chain Block / Evidence ID</th>
                   <th className="py-3 px-4">Dept &amp; Standard</th>
                   <th className="py-3 px-4">Title &amp; Auditor Sign-off</th>
+                  <th className="py-3 px-4">Sealed Date &amp; Timestamp</th>
                   <th className="py-3 px-4">SHA-256 Current Hash</th>
                   <th className="py-3 px-4">Previous Chain Link</th>
                   <th className="py-3 px-4">Integrity Status</th>
@@ -599,14 +628,14 @@ export default function EvidenceTraceability() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-10 text-slate-400">
+                    <td colSpan="8" className="text-center py-10 text-slate-400">
                       <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
                       Loading cryptographic evidence ledger...
                     </td>
                   </tr>
                 ) : filteredSealedEvidence.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-10 text-slate-400">
+                    <td colSpan="8" className="text-center py-10 text-slate-400">
                       No sealed evidence records found matching criteria.
                     </td>
                   </tr>
@@ -641,6 +670,16 @@ export default function EvidenceTraceability() {
                               "{ev.auditorNotes}"
                             </div>
                           )}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                            <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>{formatSealedDate(getEvidenceTimestamp(ev))}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-mono mt-0.5" title={new Date(getEvidenceTimestamp(ev)).toISOString()}>
+                            <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{formatSealedTime(getEvidenceTimestamp(ev))}</span>
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-mono text-[11px]">
                           <div className="flex items-center gap-1 text-slate-700 bg-slate-100 px-2 py-1 rounded w-fit max-w-[150px] truncate">
@@ -971,6 +1010,21 @@ export default function EvidenceTraceability() {
                 <div>
                   <span className="text-slate-400 block text-[10px]">Chain Block #:</span>
                   <div className="font-bold text-emerald-700 font-mono">Block #{selectedEvidence.chainIndex || 0}</div>
+                </div>
+              </div>
+
+              {/* Sealed Date & Timestamp Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-blue-50/80 border border-blue-200/80 rounded-xl gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="text-slate-500 font-medium">Sealed Date:</span>
+                  <strong className="text-slate-900 font-bold">{formatSealedDate(getEvidenceTimestamp(selectedEvidence))}</strong>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span className="text-slate-500 font-medium">Exact Timestamp:</span>
+                  <strong className="text-blue-800 font-mono font-bold">{formatSealedTime(getEvidenceTimestamp(selectedEvidence))}</strong>
+                  <span className="text-[10px] text-slate-500 font-mono">({new Date(getEvidenceTimestamp(selectedEvidence)).toISOString()})</span>
                 </div>
               </div>
 
