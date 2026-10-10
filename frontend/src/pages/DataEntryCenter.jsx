@@ -21,24 +21,89 @@ import {
   Flame,
   ShieldAlert,
   Building2,
-  Lock
+  Lock,
+  ListChecks,
+  Check,
+  CornerDownRight
 } from 'lucide-react';
+
+const DEPARTMENT_STANDARD_PROTOCOLS = {
+  ICU: [
+    { activity: 'Admission', resource: 'ICU Triage Nurse', durationMinutes: 10 },
+    { activity: 'Triage', resource: 'Duty Intensivist', durationMinutes: 15 },
+    { activity: 'Lab Cultures', resource: 'Microbiology Lab', durationMinutes: 20 },
+    { activity: 'Central Line Sterile Dressing', resource: 'ICU Clinical Nurse', durationMinutes: 15 },
+    { activity: 'Medication Verification', resource: 'Dual Clinician Sign-Off', durationMinutes: 10 },
+    { activity: 'Treatment', resource: 'Attending Intensivist', durationMinutes: 30 }
+  ],
+  Surgery: [
+    { activity: 'Pre-Op Assessment', resource: 'Anesthesiologist', durationMinutes: 15 },
+    { activity: 'Site Marking & Consent', resource: 'Lead Surgeon', durationMinutes: 10 },
+    { activity: 'Anesthesia Check', resource: 'Anesthesia Registrar', durationMinutes: 15 },
+    { activity: 'WHO Surgical Safety Checklist', resource: 'Circulating Nurse', durationMinutes: 10 },
+    { activity: 'Surgical Procedure', resource: 'Surgical Team', durationMinutes: 60 },
+    { activity: 'Post-Op Recovery', resource: 'PACU Staff', durationMinutes: 30 }
+  ],
+  Emergency: [
+    { activity: 'Registration', resource: 'Admissions Desk', durationMinutes: 5 },
+    { activity: 'Acuity Triage', resource: 'Triage Sister', durationMinutes: 10 },
+    { activity: 'Emergency Physician Assessment', resource: 'ER Consultant', durationMinutes: 15 },
+    { activity: 'Diagnostic Imaging', resource: 'Radiology Bay 2', durationMinutes: 20 },
+    { activity: 'Medication Verification', resource: 'Clinical Pharmacist', durationMinutes: 10 },
+    { activity: 'Disposition', resource: 'Transfer Team', durationMinutes: 15 }
+  ],
+  Cardiology: [
+    { activity: 'Admission', resource: 'Cardiac Intake Desk', durationMinutes: 10 },
+    { activity: 'Rapid 12-Lead ECG', resource: 'Cardiac Triage Sister', durationMinutes: 10 },
+    { activity: 'Biomarker Lab', resource: 'Troponin Rapid Lab', durationMinutes: 15 },
+    { activity: 'Cath Lab Activation', resource: 'Cath Lab Team', durationMinutes: 15 },
+    { activity: 'Medication Verification', resource: 'Interventional Pharmacist', durationMinutes: 10 },
+    { activity: 'Angioplasty Intervention', resource: 'Lead Interventional Cardiologist', durationMinutes: 45 }
+  ],
+  'General Ward': [
+    { activity: 'Admission', resource: 'Admissions Desk', durationMinutes: 10 },
+    { activity: 'Nursing Intake', resource: 'Primary Ward Sister', durationMinutes: 15 },
+    { activity: 'Physician Rounds', resource: 'Attending Physician', durationMinutes: 20 },
+    { activity: 'Bedside Medication Scan', resource: 'Handheld Barcode Scanner', durationMinutes: 10 },
+    { activity: 'Discharge Reconciliation', resource: 'Lead Clinical Pharmacist', durationMinutes: 15 }
+  ]
+};
+
+const DEPARTMENT_STANDARD_DIAGNOSES = {
+  ICU: 'Post-Op Critical Care Surveillance',
+  Surgery: 'Laparoscopic Surgical Procedure',
+  Emergency: 'Acute Chest Pain / Trauma Intake',
+  Cardiology: 'Acute Coronary Syndrome / STEMI Evaluation',
+  'General Ward': 'Inpatient Convalescence & Medical Care'
+};
 
 const STANDARD_ACTIVITIES = [
   'Admission',
+  'Registration',
   'Triage',
+  'Acuity Triage',
   'Lab',
+  'Lab Cultures',
+  'Biomarker Lab',
+  'Rapid 12-Lead ECG',
+  'Diagnostic Imaging',
   'Nursing Intake',
   'Physician Rounds',
+  'Emergency Physician Assessment',
+  'Pre-Op Assessment',
+  'Site Marking & Consent',
+  'Anesthesia Check',
+  'WHO Surgical Safety Checklist',
+  'Surgical Procedure',
+  'Post-Op Recovery',
+  'Cath Lab Activation',
+  'Angioplasty Intervention',
+  'Central Line Sterile Dressing',
   'Medication Verification',
   'Bedside Medication Scan',
   'Treatment',
   'Emergency Examination',
-  'Pre-Op Assessment',
-  'Anesthesia Check',
-  'Surgical Safety Checklist',
-  'Surgical Procedure',
-  'Post-Op Recovery',
+  'Disposition',
   'Discharge Reconciliation',
   'Discharge Planning'
 ];
@@ -68,18 +133,16 @@ export default function DataEntryCenter() {
   };
 
   // Pathway Form State
+  const initialDept = selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU';
+  const initialDeptPrefix = initialDept.slice(0, 3).toUpperCase();
+  const initialEvents = (DEPARTMENT_STANDARD_PROTOCOLS[initialDept] || DEPARTMENT_STANDARD_PROTOCOLS['ICU']).map(ev => ({ ...ev }));
+
   const [pathwayForm, setPathwayForm] = useState({
-    caseId: `CASE-${Math.floor(1000 + Math.random() * 9000)}`,
-    department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
-    admissionDiagnosis: 'Observation / Monitoring',
+    caseId: `${initialDeptPrefix}-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
+    department: initialDept,
+    admissionDiagnosis: DEPARTMENT_STANDARD_DIAGNOSES[initialDept] || 'Observation / Monitoring',
     admissionDateTime: getNowLocalDateTime(),
-    events: [
-      { activity: 'Admission', resource: 'Triage Nurse', durationMinutes: 10 },
-      { activity: 'Triage', resource: 'Duty Doctor', durationMinutes: 15 },
-      { activity: 'Lab', resource: 'Lab Tech', durationMinutes: 20 },
-      { activity: 'Medication Verification', resource: 'Lead Pharmacist', durationMinutes: 10 },
-      { activity: 'Treatment', resource: 'Attending Physician', durationMinutes: 45 }
-    ]
+    events: initialEvents
   });
   const [pathwaySubmitting, setPathwaySubmitting] = useState(false);
   const [pathwayResult, setPathwayResult] = useState(null);
@@ -244,7 +307,63 @@ export default function DataEntryCenter() {
         ]
       });
       notify('Loaded General Ward Deviated Preset (Missing Barcode Scan & Discharge)', 'info');
+    } else if (type === 'CARDIO_FAST') {
+      setPathwayForm({
+        caseId: `CAR-STEMI-${padNum}`,
+        department: 'Cardiology',
+        admissionDiagnosis: 'Acute Coronary Syndrome / STEMI Evaluation',
+        admissionDateTime: getNowLocalDateTime(),
+        events: [
+          { activity: 'Admission', resource: 'Cardiac Intake Desk', durationMinutes: 10 },
+          { activity: 'Rapid 12-Lead ECG', resource: 'Cardiac Triage Sister', durationMinutes: 10 },
+          { activity: 'Biomarker Lab', resource: 'Troponin Rapid Lab', durationMinutes: 15 },
+          { activity: 'Cath Lab Activation', resource: 'Cath Lab Team', durationMinutes: 15 },
+          { activity: 'Medication Verification', resource: 'Interventional Pharmacist', durationMinutes: 10 },
+          { activity: 'Angioplasty Intervention', resource: 'Lead Interventional Cardiologist', durationMinutes: 45 }
+        ]
+      });
+      notify('Loaded Cardiology 100% Compliant STEMI Protocol Preset', 'info');
     }
+  };
+
+  const handlePathwayDepartmentChange = (dept) => {
+    const standardEvents = (DEPARTMENT_STANDARD_PROTOCOLS[dept] || DEPARTMENT_STANDARD_PROTOCOLS['ICU']).map(ev => ({ ...ev }));
+    const padNum = Math.floor(1000 + Math.random() * 9000);
+    const deptPrefix = dept.slice(0, 3).toUpperCase();
+    setPathwayForm({
+      ...pathwayForm,
+      department: dept,
+      caseId: `${deptPrefix}-CASE-${padNum}`,
+      admissionDiagnosis: DEPARTMENT_STANDARD_DIAGNOSES[dept] || pathwayForm.admissionDiagnosis,
+      events: standardEvents
+    });
+    notify(`Loaded standard procedures sequence for ${dept}`, 'info');
+  };
+
+  const handleLoadDepartmentStandardProtocol = () => {
+    const standardEvents = (DEPARTMENT_STANDARD_PROTOCOLS[pathwayForm.department] || DEPARTMENT_STANDARD_PROTOCOLS['ICU']).map(ev => ({ ...ev }));
+    setPathwayForm({
+      ...pathwayForm,
+      admissionDiagnosis: DEPARTMENT_STANDARD_DIAGNOSES[pathwayForm.department] || pathwayForm.admissionDiagnosis,
+      events: standardEvents
+    });
+    notify(`Loaded full accredited procedure sequence for ${pathwayForm.department}`, 'success');
+  };
+
+  const handleAddProcedureToSequence = (proc) => {
+    const alreadyExists = pathwayForm.events.some(e => e.activity === proc.activity);
+    if (alreadyExists) {
+      notify(`'${proc.activity}' is already included in the clinical sequence.`, 'info');
+      return;
+    }
+    setPathwayForm({
+      ...pathwayForm,
+      events: [
+        ...pathwayForm.events,
+        { ...proc }
+      ]
+    });
+    notify(`Added '${proc.activity}' to execution sequence`, 'success');
   };
 
   const handleMetricSubmit = async (e) => {
@@ -731,6 +850,13 @@ export default function DataEntryCenter() {
             </button>
             <button
               type="button"
+              onClick={() => applyPathwayPreset('CARDIO_FAST')}
+              className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold border border-sky-200 transition"
+            >
+              ⚡ Cardiology STEMI Fast-Track
+            </button>
+            <button
+              type="button"
               onClick={() => applyPathwayPreset('SURGERY_CHECKLIST')}
               className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold border border-purple-200 transition"
             >
@@ -769,7 +895,7 @@ export default function DataEntryCenter() {
                 <label className="block font-semibold text-slate-700 mb-1">Department *</label>
                 <select
                   value={pathwayForm.department}
-                  onChange={(e) => setPathwayForm({ ...pathwayForm, department: e.target.value })}
+                  onChange={(e) => handlePathwayDepartmentChange(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-bold focus:outline-none focus:border-blue-500"
                 >
                   {['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'].map((d) => (
@@ -845,6 +971,90 @@ export default function DataEntryCenter() {
               );
             })()}
 
+            {/* Department Required Accredited Procedures Guidance Box */}
+            {(() => {
+              const currentDeptProtocols = DEPARTMENT_STANDARD_PROTOCOLS[pathwayForm.department] || [];
+              const includedCount = currentDeptProtocols.filter(p => pathwayForm.events.some(e => e.activity === p.activity)).length;
+              const totalCount = currentDeptProtocols.length;
+              const isAllIncluded = totalCount > 0 && includedCount === totalCount;
+              const compliancePct = totalCount > 0 ? Math.round((includedCount / totalCount) * 100) : 100;
+
+              return (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 border border-blue-200/80 shadow-xs space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-sm">
+                        <ListChecks className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs">
+                            Accredited Required Procedures for {pathwayForm.department}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono border ${
+                              isAllIncluded
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : 'bg-amber-100 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            {includedCount}/{totalCount} Completed ({compliancePct}%)
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Standard accredited workflow checklist. Click any missing procedure chip below to append it, or load all standard steps at once.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleLoadDepartmentStandardProtocol}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition active:scale-95"
+                      title={`Load all required ${pathwayForm.department} procedures in sequential order`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-300" />
+                      <span>⚡ Load All Standard {pathwayForm.department} Procedures</span>
+                    </button>
+                  </div>
+
+                  {/* Interactive Procedure Chips in Order */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {currentDeptProtocols.map((proc, pIdx) => {
+                      const isIncluded = pathwayForm.events.some(e => e.activity === proc.activity);
+                      return (
+                        <button
+                          key={proc.activity}
+                          type="button"
+                          onClick={() => handleAddProcedureToSequence(proc)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                            isIncluded
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 cursor-default hover:bg-emerald-100/80'
+                              : 'bg-white text-blue-700 border-dashed border-blue-300 hover:bg-blue-50 hover:border-blue-500 shadow-xs cursor-pointer'
+                          }`}
+                          title={isIncluded ? `✅ Step ${pIdx + 1}: ${proc.activity} is included` : `⚠️ Click to append Step ${pIdx + 1}: ${proc.activity} (${proc.durationMinutes} mins)`}
+                        >
+                          <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono font-bold ${
+                            isIncluded ? 'bg-emerald-200 text-emerald-800' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {pIdx + 1}
+                          </span>
+                          <span>{proc.activity}</span>
+                          {isIncluded ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100/80 px-1.5 py-0.2 rounded-full shrink-0">
+                              + Add
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Sequential Steps List */}
             <div className="space-y-2 pt-2">
               <label className="block font-semibold text-slate-700">Clinical Pathway Sequence (In Order of Execution):</label>
@@ -857,6 +1067,9 @@ export default function DataEntryCenter() {
                   const baseMs = new Date(pathwayForm.admissionDateTime || Date.now()).getTime();
                   const stepStartTime = new Date(baseMs + stepStartMins * 60000);
                   const stepEndTime = new Date(baseMs + (stepStartMins + (Number(ev.durationMinutes) || 0)) * 60000);
+
+                  const deptProcs = (DEPARTMENT_STANDARD_PROTOCOLS[pathwayForm.department] || []).map(p => p.activity);
+                  const otherProcs = STANDARD_ACTIVITIES.filter(act => !deptProcs.includes(act));
 
                   return (
                     <div
@@ -872,9 +1085,16 @@ export default function DataEntryCenter() {
                         onChange={(e) => handleEventChange(idx, 'activity', e.target.value)}
                         className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium flex-1 focus:outline-none focus:border-blue-500"
                       >
-                        {STANDARD_ACTIVITIES.map((act) => (
-                          <option key={act} value={act}>{act}</option>
-                        ))}
+                        <optgroup label={`⭐ Required ${pathwayForm.department} Procedures`}>
+                          {deptProcs.map((act) => (
+                            <option key={act} value={act}>{act}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Other Standard Hospital Procedures">
+                          {otherProcs.map((act) => (
+                            <option key={act} value={act}>{act}</option>
+                          ))}
+                        </optgroup>
                       </select>
 
                       <input
