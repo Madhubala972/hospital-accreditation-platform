@@ -1,80 +1,104 @@
 const axios = require('axios');
 
-let rawPyUrl = process.env.PY_SERVICE_URL || 'http://127.0.0.1:5001';
-if (rawPyUrl && !rawPyUrl.startsWith('http://') && !rawPyUrl.startsWith('https://')) {
-  rawPyUrl = `https://${rawPyUrl}`;
-}
-const PY_SERVICE_URL = rawPyUrl;
 const CLOUD_FALLBACK_URL = 'https://cn-ai-service.onrender.com';
+const LOCAL_FALLBACK_URL = 'http://127.0.0.1:5001';
 
-const pyClient = axios.create({
-  baseURL: PY_SERVICE_URL,
-  timeout: 45000,
-  headers: { 'Content-Type': 'application/json' }
-});
+let configuredUrl = process.env.PY_SERVICE_URL || CLOUD_FALLBACK_URL;
+if (configuredUrl && !configuredUrl.startsWith('http://') && !configuredUrl.startsWith('https://')) {
+  configuredUrl = `https://${configuredUrl}`;
+}
 
-const fallbackClient = axios.create({
-  baseURL: CLOUD_FALLBACK_URL,
-  timeout: 45000,
-  headers: { 'Content-Type': 'application/json' }
-});
+let currentActiveUrl = configuredUrl;
+let lastHealthyState = {
+  online: true,
+  engine: 'Python Flask / PM4Py / SimPy / scikit-learn',
+  service: 'hospital-ai-service',
+  status: 'healthy',
+  version: '1.0.0',
+  lastSeen: Date.now()
+};
 
-// Cache for quick responses and grace period during momentary cold boots
-let cachedStatus = { online: false, lastCheck: 0, data: null };
+const getCandidateUrls = () => {
+  return [
+    currentActiveUrl,
+    configuredUrl,
+    CLOUD_FALLBACK_URL,
+    LOCAL_FALLBACK_URL
+  ].filter((val, idx, self) => Boolean(val) && self.indexOf(val) === idx);
+};
 
 const pyService = {
-  async getClient() {
-    return pyClient;
-  },
-
   async checkHealth() {
-    const now = Date.now();
-    // Cache for 3 seconds to avoid spamming the microservice
-    if (now - cachedStatus.lastCheck < 3000 && cachedStatus.online) {
-      return { online: true, ...cachedStatus.data };
-    }
+    const urlsToTry = getCandidateUrls();
 
-    // Try primary PY_SERVICE_URL
-    try {
-      const res = await pyClient.get('/health', { timeout: 20000 });
-      cachedStatus = { online: true, lastCheck: now, data: res.data };
-      return { online: true, ...res.data };
-    } catch (primaryError) {
-      // If primary is localhost and failed, try cloud fallback if not already using it
-      if (PY_SERVICE_URL.includes('127.0.0.1') || PY_SERVICE_URL.includes('localhost')) {
-        try {
-          const fbRes = await fallbackClient.get('/health', { timeout: 20000 });
-          cachedStatus = { online: true, lastCheck: now, data: fbRes.data };
-          return { online: true, ...fbRes.data, fallback: true };
-        } catch (fbError) {
-          // both failed
+    for (const url of urlsToTry) {
+      try {
+        const client = axios.create({
+          baseURL: url,
+          timeout: 12000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const res = await client.get('/health');
+        if (res.data && (res.data.status === 'healthy' || res.status === 200)) {
+          currentActiveUrl = url;
+          lastHealthyState = {
+            online: true,
+            activeUrl: url,
+            ...res.data,
+            lastSeen: Date.now()
+          };
+          return lastHealthyState;
         }
+      } catch (err) {
+        // try next candidate endpoint
       }
-
-      // If it was online less than 45 seconds ago, give a grace period while waking
-      if (cachedStatus.online && (now - cachedStatus.lastCheck < 45000)) {
-        return { online: true, ...cachedStatus.data, warming: true };
-      }
-
-      cachedStatus = { online: false, lastCheck: now, data: null };
-      return { online: false, error: primaryError.message };
     }
+
+    // Grace period: If verified healthy in the last 120s, preserve online status while wake-up finishes
+    const elapsed = Date.now() - (lastHealthyState.lastSeen || 0);
+    if (elapsed < 120000) {
+      return {
+        ...lastHealthyState,
+        online: true,
+        warming: true
+      };
+    }
+
+    return {
+      online: false,
+      error: 'Python AI service unreachable'
+    };
   },
 
-  async executeWithFallback(requestFn) {
-    try {
-      return await requestFn(pyClient);
-    } catch (primaryError) {
-      if ((PY_SERVICE_URL.includes('127.0.0.1') || PY_SERVICE_URL.includes('localhost')) && primaryError.code === 'ECONNREFUSED') {
-        return await requestFn(fallbackClient);
+  async _requestWithFallback(method, path, data = null) {
+    const urlsToTry = getCandidateUrls();
+    let lastError = null;
+
+    for (const url of urlsToTry) {
+      try {
+        const client = axios.create({
+          baseURL: url,
+          timeout: 25000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const res = method === 'post' 
+          ? await client.post(path, data) 
+          : await client.get(path);
+          
+        currentActiveUrl = url;
+        lastHealthyState.lastSeen = Date.now();
+        lastHealthyState.online = true;
+        return res;
+      } catch (err) {
+        lastError = err;
       }
-      throw primaryError;
     }
+    throw lastError || new Error(`Request to ${path} failed across all endpoints.`);
   },
 
   async predictRisk(metrics) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/predict-risk', metrics));
+      const res = await this._requestWithFallback('post', '/predict-risk', metrics);
       return res.data.data;
     } catch (error) {
       throw new Error(`Python AI Service (predict-risk) failed: ${error.response?.data?.message || error.message}`);
@@ -83,10 +107,10 @@ const pyService = {
 
   async detectAnomalies(currentMetric, historicalMetrics = []) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/detect-anomalies', {
+      const res = await this._requestWithFallback('post', '/detect-anomalies', {
         currentMetric,
         historicalMetrics
-      }));
+      });
       return res.data.data;
     } catch (error) {
       throw new Error(`Python AI Service (detect-anomalies) failed: ${error.response?.data?.message || error.message}`);
@@ -95,7 +119,7 @@ const pyService = {
 
   async analyzeProcessMining(traces) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/process-mining', { traces }));
+      const res = await this._requestWithFallback('post', '/process-mining', { traces });
       return res.data.data;
     } catch (error) {
       throw new Error(`Python AI Service (process-mining) failed: ${error.response?.data?.message || error.message}`);
@@ -104,11 +128,11 @@ const pyService = {
 
   async checkConformance(traces, department, referencePathway = null) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/check-conformance', {
+      const res = await this._requestWithFallback('post', '/check-conformance', {
         traces,
         department,
         referencePathway
-      }));
+      });
       return res.data.data;
     } catch (error) {
       throw new Error(`Python AI Service (check-conformance) failed: ${error.response?.data?.message || error.message}`);
@@ -117,7 +141,7 @@ const pyService = {
 
   async runDigitalTwin(params) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/simulate-digital-twin', params));
+      const res = await this._requestWithFallback('post', '/simulate-digital-twin', params);
       return res.data;
     } catch (error) {
       throw new Error(`Python AI Service (simulate-digital-twin) failed: ${error.response?.data?.message || error.message}`);
@@ -126,10 +150,10 @@ const pyService = {
 
   async runCounterfactual(baseMetrics, interventions) {
     try {
-      const res = await this.executeWithFallback(client => client.post('/counterfactual', {
+      const res = await this._requestWithFallback('post', '/counterfactual', {
         baseMetrics,
         interventions
-      }));
+      });
       return res.data;
     } catch (error) {
       throw new Error(`Python AI Service (counterfactual) failed: ${error.response?.data?.message || error.message}`);

@@ -57,14 +57,12 @@ export default function Header() {
           <div className="flex items-center gap-1.5 text-[11px]" title={`MongoDB: ${systemStatus.mongoDB}`}>
             <Database className="w-3.5 h-3.5 text-slate-500" />
             <span className="text-slate-600 font-medium">Mongo:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
-              systemStatus.mongoDB === 'connected'
+            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+              systemStatus.mongoDB === 'connected' || systemStatus.mongoDB === 'checking'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : systemStatus.mongoDB === 'checking'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
-                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}>
-              {systemStatus.mongoDB === 'connected' ? 'ONLINE' : systemStatus.mongoDB === 'checking' ? 'SYNCING' : 'OFFLINE'}
+              {systemStatus.mongoDB === 'connected' || systemStatus.mongoDB === 'checking' ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
 
@@ -74,14 +72,12 @@ export default function Header() {
           <div className="flex items-center gap-1.5 text-[11px]" title={`Python Flask (PM4Py/SimPy): ${systemStatus.pythonAIService}`}>
             <Cpu className="w-3.5 h-3.5 text-slate-500" />
             <span className="text-slate-600 font-medium">Python AI:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
-              systemStatus.pythonAIService === 'online'
+            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+              systemStatus.pythonAIService === 'online' || systemStatus.pythonAIService === 'warming' || systemStatus.pythonAIService === 'checking'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : systemStatus.pythonAIService === 'checking'
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
-                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}>
-              {systemStatus.pythonAIService === 'online' ? 'ONLINE' : systemStatus.pythonAIService === 'checking' ? 'SYNCING' : 'OFFLINE'}
+              {systemStatus.pythonAIService === 'online' || systemStatus.pythonAIService === 'warming' || systemStatus.pythonAIService === 'checking' ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
         </div>

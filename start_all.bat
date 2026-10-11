@@ -3,9 +3,6 @@ echo =======================================================
 echo 🏥 Starting Hospital Accreditation Intelligence System
 echo =======================================================
 
-echo [0/3] Ensuring MongoDB Service is started...
-net start MongoDB >nul 2>&1
-
 echo [1/3] Starting Python AI Flask Service on port 5001...
 start "Hospital AI Service" cmd /k "cd /d %~dp0ai-service && python app.py"
 

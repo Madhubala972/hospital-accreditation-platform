@@ -29,12 +29,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     checkStatus();
     const interval = setInterval(checkStatus, 5000); // Heartbeat every 5s for fast status sync
-    const handleFocus = () => checkStatus();
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   const [criticalAlertTrigger, setCriticalAlertTrigger] = useState(null);
