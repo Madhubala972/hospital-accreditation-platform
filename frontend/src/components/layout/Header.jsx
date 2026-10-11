@@ -14,7 +14,7 @@ const departments = [
 ];
 
 export default function Header() {
-  const { selectedDepartment, setSelectedDepartment, systemStatus, triggerRefresh } = useApp();
+  const { selectedDepartment, setSelectedDepartment, systemStatus, checkStatus, triggerRefresh } = useApp();
   const { user, pendingCount } = useAuth();
   const isDean = user?.role === 'Dean' || user?.role === 'Admin';
 
@@ -57,12 +57,14 @@ export default function Header() {
           <div className="flex items-center gap-1.5 text-[11px]" title={`MongoDB: ${systemStatus.mongoDB}`}>
             <Database className="w-3.5 h-3.5 text-slate-500" />
             <span className="text-slate-600 font-medium">Mongo:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
               systemStatus.mongoDB === 'connected'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                : systemStatus.mongoDB === 'checking'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}>
-              {systemStatus.mongoDB === 'connected' ? 'ONLINE' : 'OFFLINE'}
+              {systemStatus.mongoDB === 'connected' ? 'ONLINE' : systemStatus.mongoDB === 'checking' ? 'SYNCING' : 'OFFLINE'}
             </span>
           </div>
 
@@ -72,21 +74,26 @@ export default function Header() {
           <div className="flex items-center gap-1.5 text-[11px]" title={`Python Flask (PM4Py/SimPy): ${systemStatus.pythonAIService}`}>
             <Cpu className="w-3.5 h-3.5 text-slate-500" />
             <span className="text-slate-600 font-medium">Python AI:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
               systemStatus.pythonAIService === 'online'
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                : systemStatus.pythonAIService === 'checking'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}>
-              {systemStatus.pythonAIService === 'online' ? 'ONLINE' : 'OFFLINE'}
+              {systemStatus.pythonAIService === 'online' ? 'ONLINE' : systemStatus.pythonAIService === 'checking' ? 'SYNCING' : 'OFFLINE'}
             </span>
           </div>
         </div>
 
         {/* Refresh Action */}
         <button
-          onClick={triggerRefresh}
+          onClick={() => {
+            triggerRefresh();
+            checkStatus();
+          }}
           className="flex items-center gap-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 hover:border-blue-200 transition shadow-sm"
-          title="Refresh Current View Data"
+          title="Refresh Current View Data & Connection Status"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Sync</span>
