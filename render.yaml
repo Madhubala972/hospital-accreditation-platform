@@ -13,7 +13,7 @@ services:
     name: cn-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: cd ../frontend && npm install && npm run build && cd ../backend && npm install
     startCommand: node server.js
     plan: free
     envVars:
@@ -36,6 +36,12 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: cn-backend
+          property: host
     routes:
       - type: rewrite
         source: /*

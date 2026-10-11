@@ -33,8 +33,11 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
+const path = require('path');
+const fs = require('fs');
+
 // Root health endpoint
-app.get('/', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     name: 'CN - Hospital Intelligence System API',
     status: 'online',
@@ -42,6 +45,27 @@ app.get('/', (req, res) => {
     docs: '/api/system/status'
   });
 });
+
+// Serve static frontend SPA
+const frontendDist = path.resolve(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.resolve(frontendDist, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      name: 'CN - Hospital Intelligence System API',
+      status: 'online',
+      version: '1.0.0',
+      docs: '/api/system/status'
+    });
+  });
+}
 
 // Global Error Handler (Section 21: explicit error state, no silent fallbacks)
 app.use((err, req, res, next) => {
