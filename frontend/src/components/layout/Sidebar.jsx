@@ -56,8 +56,8 @@ export default function Sidebar() {
           <Building2 className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="font-bold text-sm text-slate-900 tracking-tight">Accreditation IQ</h1>
-          <p className="text-[11px] text-blue-600 font-semibold">Evidence-Driven Intelligence</p>
+          <h1 className="font-bold text-base text-slate-900 tracking-tight">CN</h1>
+          <p className="text-[11px] text-blue-600 font-semibold">Hospital Intelligence System</p>
         </div>
       </div>
 

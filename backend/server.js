@@ -36,7 +36,7 @@ app.use('/api', apiRoutes);
 // Root health endpoint
 app.get('/', (req, res) => {
   res.json({
-    name: 'Hospital Accreditation Intelligence System API',
+    name: 'CN - Hospital Intelligence System API',
     status: 'online',
     version: '1.0.0',
     docs: '/api/system/status'

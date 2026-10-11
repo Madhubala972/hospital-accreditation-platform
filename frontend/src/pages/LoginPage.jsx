@@ -155,10 +155,10 @@ export default function LoginPage() {
           <Building2 className="w-9 h-9" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-          Hospital Quality & Accreditation Portal
+          CN
         </h2>
         <p className="mt-1 text-xs text-slate-500 font-medium">
-          NABH 5th Edition & JCI Closed-Loop Clinical Intelligence System
+          Hospital Quality & Clinical Intelligence Platform
         </p>
       </div>
 
