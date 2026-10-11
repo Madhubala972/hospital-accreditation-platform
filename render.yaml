@@ -24,10 +24,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: PY_SERVICE_URL
-        fromService:
-          type: web
-          name: cn-ai-service
-          property: host
+        value: https://cn-ai-service.onrender.com
 
   # 3. React Frontend Web Application (Static Site)
   - type: web
@@ -38,10 +35,7 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: cn-backend
-          property: host
+        value: https://cn-backend-5pnj.onrender.com
     routes:
       - type: rewrite
         source: /*
