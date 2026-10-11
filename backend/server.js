@@ -80,16 +80,17 @@ app.use((err, req, res, next) => {
 // Start Server
 const startServer = async () => {
   try {
-    await connectDB();
     app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(`🚀 Hospital Accreditation Backend running on port ${PORT}`);
       console.log(`📡 API Base: http://localhost:${PORT}/api`);
       console.log(`=======================================================`);
     });
+    connectDB().catch(err => {
+      console.error(`[MongoDB Init Error] ${err.message}`);
+    });
   } catch (error) {
     console.error(`Failed to start backend server: ${error.message}`);
-    process.exit(1);
   }
 };
 

@@ -1,6 +1,10 @@
 const axios = require('axios');
 
-const PY_SERVICE_URL = process.env.PY_SERVICE_URL || 'http://127.0.0.1:5001';
+let rawPyUrl = process.env.PY_SERVICE_URL || 'http://127.0.0.1:5001';
+if (rawPyUrl && !rawPyUrl.startsWith('http://') && !rawPyUrl.startsWith('https://')) {
+  rawPyUrl = `https://${rawPyUrl}`;
+}
+const PY_SERVICE_URL = rawPyUrl;
 
 const pyClient = axios.create({
   baseURL: PY_SERVICE_URL,
