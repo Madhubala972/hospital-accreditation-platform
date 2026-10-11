@@ -49,11 +49,18 @@ app.get('/api/health', (req, res) => {
 // Serve static frontend SPA
 const frontendDist = path.resolve(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
+  app.use(express.static(frontendDist, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    }
+  }));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.resolve(frontendDist, 'index.html'));
   });
 } else {
