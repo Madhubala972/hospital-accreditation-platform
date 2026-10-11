@@ -22,7 +22,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGO_URI
-        sync: false
+        value: mongodb+srv://mb9618951_db_user:ma%402110sa@cluster0.z3np1k0.mongodb.net/hospital_accreditation?retryWrites=true&w=majority
       - key: JWT_SECRET
         generateValue: true
       - key: PY_SERVICE_URL
