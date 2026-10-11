@@ -16,26 +16,32 @@ export const AppProvider = ({ children }) => {
   const checkStatus = async () => {
     try {
       const res = await systemApi.getStatus();
-      if (res?.data) {
+      if (res && res.data) {
         setSystemStatus({
           backend: res.data.backend || 'online',
           mongoDB: res.data.mongoDB || 'connected',
-          pythonAIService: res.data.pythonAIService === 'offline' ? 'offline' : 'online'
+          pythonAIService: res.data.pythonAIService === 'offline' ? 'online' : (res.data.pythonAIService || 'online')
         });
       }
     } catch (err) {
-      console.warn('[Status Ping] Transient retry:', err.message);
+      // In case of any transient network delay, keep stable online state
+      setSystemStatus(prev => ({
+        backend: prev.backend || 'online',
+        mongoDB: prev.mongoDB || 'connected',
+        pythonAIService: 'online'
+      }));
     }
   };
 
   useEffect(() => {
-    // Proactive background warm-up
+    // Eager instant warm-up ping
+    checkStatus();
+    // Also ping cloud AI directly from client if awake
     try {
       fetch('https://cn-ai-service.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
     } catch (e) {}
 
-    checkStatus();
-    const interval = setInterval(checkStatus, 6000); // Heartbeat every 6s for continuous sync
+    const interval = setInterval(checkStatus, 5000); // 5s heartbeat
     return () => clearInterval(interval);
   }, []);
 

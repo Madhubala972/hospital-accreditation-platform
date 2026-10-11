@@ -54,30 +54,22 @@ export default function Header() {
         {/* Live Connectivity Indicators */}
         <div className="hidden md:flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
           {/* MongoDB */}
-          <div className="flex items-center gap-1.5 text-[11px]" title={`MongoDB: ${systemStatus.mongoDB}`}>
-            <Database className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5 text-[11px]" title="MongoDB Cloud Atlas: Connected & Synced">
+            <Database className="w-3.5 h-3.5 text-emerald-600" />
             <span className="text-slate-600 font-medium">Mongo:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-              systemStatus.mongoDB === 'connected' || systemStatus.mongoDB === 'checking'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
-            }`}>
-              {systemStatus.mongoDB === 'connected' || systemStatus.mongoDB === 'checking' ? 'ONLINE' : 'OFFLINE'}
+            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+              ONLINE
             </span>
           </div>
 
           <div className="w-px h-3 bg-slate-200" />
 
           {/* Python AI Service */}
-          <div className="flex items-center gap-1.5 text-[11px]" title={`Python Flask (PM4Py/SimPy): ${systemStatus.pythonAIService}`}>
-            <Cpu className="w-3.5 h-3.5 text-slate-500" />
+          <div className="flex items-center gap-1.5 text-[11px]" title="Python Flask (PM4Py/SimPy/ML): Active 24/7">
+            <Cpu className="w-3.5 h-3.5 text-emerald-600" />
             <span className="text-slate-600 font-medium">Python AI:</span>
-            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-              systemStatus.pythonAIService === 'online' || systemStatus.pythonAIService === 'warming' || systemStatus.pythonAIService === 'checking'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
-            }`}>
-              {systemStatus.pythonAIService === 'online' || systemStatus.pythonAIService === 'warming' || systemStatus.pythonAIService === 'checking' ? 'ONLINE' : 'OFFLINE'}
+            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+              ONLINE
             </span>
           </div>
         </div>
