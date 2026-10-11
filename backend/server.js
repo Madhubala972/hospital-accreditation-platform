@@ -90,7 +90,7 @@ const startServer = async () => {
       console.error(`[MongoDB Init Error] ${err.message}`);
     });
 
-    // 24/7 Keep-Alive Heartbeat: ensures Render containers never sleep (pings every 4 mins)
+    // 24/7 Anti-Hibernation Pulse: Pings every 90 seconds so Render 15-min idle timer NEVER triggers
     const axios = require('axios');
     const keepAliveTargets = [
       'https://cn-ai-service.onrender.com/health',
@@ -101,7 +101,7 @@ const startServer = async () => {
     const pingKeepAlive = async () => {
       for (const target of keepAliveTargets) {
         try {
-          await axios.get(target, { timeout: 15000 });
+          await axios.get(target, { timeout: 20000 });
         } catch (e) {
           // ignore transient ping timeouts
         }
@@ -109,9 +109,9 @@ const startServer = async () => {
     };
 
     // Immediate warm-up ping
-    setTimeout(pingKeepAlive, 2000);
-    // Recurring 4-minute heartbeat
-    setInterval(pingKeepAlive, 4 * 60 * 1000);
+    setTimeout(pingKeepAlive, 1000);
+    // Recurring 90-second anti-hibernation heartbeat
+    setInterval(pingKeepAlive, 90 * 1000);
 
   } catch (error) {
     console.error(`Failed to start backend server: ${error.message}`);

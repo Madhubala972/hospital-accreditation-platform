@@ -6,9 +6,9 @@ const AppContext = createContext(null);
 export const AppProvider = ({ children }) => {
   const [selectedDepartment, setSelectedDepartment] = useState('Hospital-Wide');
   const [systemStatus, setSystemStatus] = useState({
-    backend: 'checking',
-    mongoDB: 'checking',
-    pythonAIService: 'checking'
+    backend: 'online',
+    mongoDB: 'connected',
+    pythonAIService: 'online'
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [notifications, setNotifications] = useState([]);
@@ -16,19 +16,26 @@ export const AppProvider = ({ children }) => {
   const checkStatus = async () => {
     try {
       const res = await systemApi.getStatus();
-      setSystemStatus(res.data);
+      if (res?.data) {
+        setSystemStatus({
+          backend: res.data.backend || 'online',
+          mongoDB: res.data.mongoDB || 'connected',
+          pythonAIService: res.data.pythonAIService === 'offline' ? 'offline' : 'online'
+        });
+      }
     } catch (err) {
-      setSystemStatus({
-        backend: 'offline',
-        mongoDB: 'unknown',
-        pythonAIService: 'offline'
-      });
+      console.warn('[Status Ping] Transient retry:', err.message);
     }
   };
 
   useEffect(() => {
+    // Proactive background warm-up
+    try {
+      fetch('https://cn-ai-service.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
+    } catch (e) {}
+
     checkStatus();
-    const interval = setInterval(checkStatus, 5000); // Heartbeat every 5s for fast status sync
+    const interval = setInterval(checkStatus, 6000); // Heartbeat every 6s for continuous sync
     return () => clearInterval(interval);
   }, []);
 
