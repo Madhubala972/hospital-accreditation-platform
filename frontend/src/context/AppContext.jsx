@@ -6,9 +6,9 @@ const AppContext = createContext(null);
 export const AppProvider = ({ children }) => {
   const [selectedDepartment, setSelectedDepartment] = useState('Hospital-Wide');
   const [systemStatus, setSystemStatus] = useState({
-    backend: 'online',
-    mongoDB: 'connected',
-    pythonAIService: 'online'
+    backend: 'checking',
+    mongoDB: 'checking',
+    pythonAIService: 'checking'
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [notifications, setNotifications] = useState([]);
@@ -16,32 +16,19 @@ export const AppProvider = ({ children }) => {
   const checkStatus = async () => {
     try {
       const res = await systemApi.getStatus();
-      if (res && res.data) {
-        setSystemStatus({
-          backend: res.data.backend || 'online',
-          mongoDB: res.data.mongoDB || 'connected',
-          pythonAIService: res.data.pythonAIService === 'offline' ? 'online' : (res.data.pythonAIService || 'online')
-        });
-      }
+      setSystemStatus(res.data);
     } catch (err) {
-      // In case of any transient network delay, keep stable online state
-      setSystemStatus(prev => ({
-        backend: prev.backend || 'online',
-        mongoDB: prev.mongoDB || 'connected',
-        pythonAIService: 'online'
-      }));
+      setSystemStatus({
+        backend: 'offline',
+        mongoDB: 'unknown',
+        pythonAIService: 'offline'
+      });
     }
   };
 
   useEffect(() => {
-    // Eager instant warm-up ping
     checkStatus();
-    // Also ping cloud AI directly from client if awake
-    try {
-      fetch('https://cn-ai-service.onrender.com/health', { mode: 'no-cors' }).catch(() => {});
-    } catch (e) {}
-
-    const interval = setInterval(checkStatus, 5000); // 5s heartbeat
+    const interval = setInterval(checkStatus, 5000); // Heartbeat every 5s for fast status sync
     return () => clearInterval(interval);
   }, []);
 

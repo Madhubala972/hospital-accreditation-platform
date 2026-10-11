@@ -658,6 +658,13 @@ export default function EvidenceTraceability() {
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-slate-800">{ev.department}</div>
                           <div className="text-[11px] font-mono text-cyan-700">{ev.standardCode}</div>
+                          {ev.dataPayload?.caseId && (
+                            <div className="mt-0.5">
+                              <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                Case: {ev.dataPayload.caseId}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 max-w-xs">
                           <div className="font-bold text-slate-900 truncate">{ev.title}</div>

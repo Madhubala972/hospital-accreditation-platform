@@ -34,6 +34,7 @@ exports.createAlert = async (req, res) => {
       severity = 'HIGH',
       reason,
       standardCode = 'NABH-COP.6',
+      caseId,
       recommendedCapa,
       reportedBy,
       timestamp
@@ -52,12 +53,14 @@ exports.createAlert = async (req, res) => {
     const cleanDateFormatted = incidentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     const evNum = Date.now().toString().slice(-4);
     const evidenceId = `EV-${deptPrefix}-INC-${dateStr}-${evNum}`;
+    const resolvedCaseId = caseId ? caseId.trim() : `${deptPrefix}-CASE-${evNum}`;
 
     // 1. Anchor into AccreditationEvidence blockchain ledger
     const evPayload = {
       incidentTitle: title,
       department,
       severity,
+      caseId: resolvedCaseId,
       reason,
       standardCode,
       recordedBy: reportedBy || req.user?.name || 'Clinical Quality Lead',
@@ -72,8 +75,8 @@ exports.createAlert = async (req, res) => {
         evidenceType: 'INCIDENT',
         sourceType: 'CriticalIncidentReport',
         sourceId: `INCIDENT-${Date.now()}`,
-        title: `Critical Situation: ${title} (${cleanDateFormatted})`,
-        description: `Clinical safety event / deviation recorded for ${department}. Reason: ${reason}`,
+        title: `Critical Situation: ${title} [Case: ${resolvedCaseId}] (${cleanDateFormatted})`,
+        description: `Clinical safety event / deviation recorded for ${department}. Case Identifier: ${resolvedCaseId}. Reason: ${reason}`,
         dataPayload: evPayload,
         recordedBy: reportedBy || req.user?.name || 'Clinical Quality Lead'
       });
@@ -86,9 +89,10 @@ exports.createAlert = async (req, res) => {
       title,
       department,
       severity,
+      caseId: resolvedCaseId,
       reason,
       evidence: [
-        `Clinical situation recorded: ${reason} [Evidence: ${evidenceId} -> ${standardCode}]`
+        `Clinical situation recorded: ${reason} [Case: ${resolvedCaseId} | Evidence: ${evidenceId} -> ${standardCode}]`
       ],
       supportingEvidenceIds: [evidenceId],
       evidenceCount: 1,
@@ -109,8 +113,8 @@ exports.createAlert = async (req, res) => {
         userRole: req.user?.role || 'Clinician',
         department,
         eventType: 'INCIDENT_LOGGED',
-        actionTitle: `Critical Situation Logged: ${title}`,
-        actionDetails: `Severity: ${severity}. Standard: ${standardCode}. Reason: ${reason}. Evidence Block: ${evidenceId}`,
+        actionTitle: `Critical Situation Logged: ${title} (${resolvedCaseId})`,
+        actionDetails: `Case: ${resolvedCaseId}. Severity: ${severity}. Standard: ${standardCode}. Reason: ${reason}. Evidence Block: ${evidenceId}`,
         evidenceId,
         status: 'SUCCESS'
       });

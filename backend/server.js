@@ -49,18 +49,11 @@ app.get('/api/health', (req, res) => {
 // Serve static frontend SPA
 const frontendDist = path.resolve(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      }
-    }
-  }));
+  app.use(express.static(frontendDist));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next();
     }
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.resolve(frontendDist, 'index.html'));
   });
 } else {
@@ -96,30 +89,6 @@ const startServer = async () => {
     connectDB().catch(err => {
       console.error(`[MongoDB Init Error] ${err.message}`);
     });
-
-    // 24/7 Keep-Alive Heartbeat: ensures Render containers never sleep (pings every 4 mins)
-    const axios = require('axios');
-    const keepAliveTargets = [
-      'https://cn-ai-service.onrender.com/health',
-      'https://cn-backend-5pnj.onrender.com/api/health',
-      'https://cn-backend-5pnj.onrender.com/api/system/status'
-    ];
-
-    const pingKeepAlive = async () => {
-      for (const target of keepAliveTargets) {
-        try {
-          await axios.get(target, { timeout: 15000 });
-        } catch (e) {
-          // ignore transient ping timeouts
-        }
-      }
-    };
-
-    // Immediate warm-up ping
-    setTimeout(pingKeepAlive, 2000);
-    // Recurring 4-minute heartbeat
-    setInterval(pingKeepAlive, 4 * 60 * 1000);
-
   } catch (error) {
     console.error(`Failed to start backend server: ${error.message}`);
   }

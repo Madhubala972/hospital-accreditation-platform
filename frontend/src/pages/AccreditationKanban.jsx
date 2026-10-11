@@ -40,6 +40,7 @@ export default function AccreditationKanban() {
   const [formData, setFormData] = useState({
     problem: '',
     department: 'ICU',
+    caseId: `ICU-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
     action: '',
     responsiblePerson: '',
     deadline: '',
@@ -69,11 +70,13 @@ export default function AccreditationKanban() {
     e.preventDefault();
     try {
       await capaApi.create(formData);
-      notify('New CAPA action created with simulation link.', 'success');
+      notify(`New CAPA action created and linked to Case ${formData.caseId}!`, 'success');
       setShowModal(false);
+      const nextDept = selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU';
       setFormData({
         problem: '',
-        department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
+        department: nextDept,
+        caseId: `${nextDept.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
         action: '',
         responsiblePerson: '',
         deadline: '',
@@ -163,10 +166,15 @@ export default function AccreditationKanban() {
                       className="p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition shadow-sm space-y-3 group"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
                             {item.department}
                           </span>
+                          {(item.caseId || item.alertId?.caseId) && (
+                            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              Case: {item.caseId || item.alertId?.caseId}
+                            </span>
+                          )}
                           {item.standardCode && (
                             <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                               {item.standardCode}
@@ -324,18 +332,37 @@ export default function AccreditationKanban() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Department *</label>
                   <select
                     value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    onChange={(e) => {
+                      const newDept = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        department: newDept,
+                        caseId: `${newDept.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`
+                      });
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-900 focus:outline-none focus:border-blue-500"
                   >
                     {['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'].map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Case Identifier *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ICU-CASE-1042"
+                    value={formData.caseId}
+                    onChange={(e) => setFormData({ ...formData, caseId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-900 focus:outline-none focus:border-blue-500"
+                  />
                 </div>
 
                 <div>

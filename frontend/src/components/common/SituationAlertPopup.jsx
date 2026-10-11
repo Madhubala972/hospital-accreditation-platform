@@ -232,9 +232,11 @@ export default function SituationAlertPopup() {
     try {
       setIsProcessing(true);
       const alertMsg = activeAlert.message || activeAlert.reason || activeAlert.title;
+      const alertCaseId = activeAlert.caseId || `${(activeAlert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-1042`;
       await capaApi.create({
         problem: `[EMERGENCY SITUATION] ${alertMsg}`,
         department: activeAlert.department || 'Hospital-Wide',
+        caseId: alertCaseId,
         action: `Execute immediate remediation protocol for ${activeAlert.standardCode || 'Clinical Deviation'}: review shift logs and reallocate clinical staff.`,
         responsiblePerson: user?.name || 'Dr. Arthur Vance (Dean / Quality Lead)',
         deadline: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
@@ -264,6 +266,7 @@ export default function SituationAlertPopup() {
         _id: 'sim-' + Date.now(),
         severity: 'MEDIUM',
         department: 'Cardiology',
+        caseId: 'CAR-CASE-4102',
         standardCode: 'NABH-COP.12',
         title: 'Cardiology Risk Escalation',
         reason: 'Pathway protocol conformance deficit (60.0% vs >=88.0% threshold). Door-to-Balloon delay detected.',
@@ -274,6 +277,7 @@ export default function SituationAlertPopup() {
         _id: 'sim-' + Date.now(),
         severity: 'CRITICAL',
         department: 'Intensive Care Unit (ICU)',
+        caseId: 'ICU-CASE-1042',
         standardCode: 'NABH-HIC-2.1',
         title: 'Severe Infection Spike',
         reason: 'ICU Central-Line Associated Bloodstream Infection reached 5.8% (Threshold: 2.0%)',
@@ -284,6 +288,7 @@ export default function SituationAlertPopup() {
         _id: 'sim-' + Date.now(),
         severity: 'HIGH',
         department: 'Emergency Room',
+        caseId: 'EME-CASE-2081',
         standardCode: 'NABH-COP-4.2',
         title: 'Emergency Triage Overflow',
         reason: 'Average door-to-doctor time exceeded 185 mins with 96% bed occupancy.',
@@ -294,6 +299,7 @@ export default function SituationAlertPopup() {
         _id: 'sim-' + Date.now(),
         severity: 'HIGH',
         department: 'Surgery',
+        caseId: 'SUR-CASE-3095',
         standardCode: 'JCI-IPSG-4',
         title: 'Surgical Checklist Omission',
         reason: 'WHO Safe Surgery Sign-In step skipped in 3 cases prior to anesthesia.',
@@ -367,13 +373,16 @@ export default function SituationAlertPopup() {
                     <Siren className="w-5 h-5 animate-spin-slow" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border font-mono tracking-wider ${
                         activeAlert.severity === 'CRITICAL' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                         activeAlert.severity === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-200' :
                         'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {activeAlert.severity || 'HIGH'} REAL-TIME SITUATION ALERT
+                      </span>
+                      <span className="text-[10px] text-indigo-700 font-bold font-mono bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+                        Case: {activeAlert.caseId || `${(activeAlert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-1042`}
                       </span>
                       <span className="text-[10px] text-slate-600 font-bold font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                         {activeAlert.standardCode || 'NABH-COP.12'}

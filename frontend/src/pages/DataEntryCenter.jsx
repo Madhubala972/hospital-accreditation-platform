@@ -148,8 +148,10 @@ export default function DataEntryCenter() {
   const [pathwayResult, setPathwayResult] = useState(null);
 
   // Critical Situation & Safety Incident Form State (Separate Block)
+  const initialSitDept = selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU';
   const [situationForm, setSituationForm] = useState({
-    department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
+    caseId: `${initialSitDept.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`,
+    department: initialSitDept,
     title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
     severity: 'CRITICAL',
     standardCode: 'HIC.2',
@@ -452,6 +454,7 @@ export default function DataEntryCenter() {
     if (type === 'ICU_CLABSI') {
       setSituationForm({
         department: 'ICU',
+        caseId: 'ICU-CASE-1042',
         title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
         severity: 'CRITICAL',
         standardCode: 'HIC.2',
@@ -460,10 +463,11 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Arthur Vance (ICU Intensivist)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded ICU CLABSI Incident Preset', 'info');
+      notify('Loaded ICU CLABSI Incident Preset (Case: ICU-CASE-1042)', 'info');
     } else if (type === 'CARDIO_ECG') {
       setSituationForm({
         department: 'Cardiology',
+        caseId: 'CAR-CASE-4102',
         title: 'Delayed Door-to-Balloon STEMI Escalation',
         severity: 'HIGH',
         standardCode: 'COP.6',
@@ -472,10 +476,11 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Priya Sharma (Interventional Cardiologist)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Cardiology STEMI Latency Preset', 'info');
+      notify('Loaded Cardiology STEMI Latency Preset (Case: CAR-CASE-4102)', 'info');
     } else if (type === 'ER_OVERFLOW') {
       setSituationForm({
         department: 'Emergency',
+        caseId: 'EME-CASE-2081',
         title: 'Severe Emergency Department Surge & Triage Divert Risk',
         severity: 'CRITICAL',
         standardCode: 'COP.1',
@@ -484,10 +489,11 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Marcus Brody (ED Medical Director)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Emergency Room Surge Overflow Preset', 'info');
+      notify('Loaded Emergency Room Surge Overflow Preset (Case: EME-CASE-2081)', 'info');
     } else if (type === 'SURGERY_TIMEOUT') {
       setSituationForm({
         department: 'Surgery',
+        caseId: 'SUR-CASE-3095',
         title: 'WHO Surgical Safety Sign-In Pause Non-Compliance',
         severity: 'HIGH',
         standardCode: 'IPSG.4',
@@ -496,10 +502,11 @@ export default function DataEntryCenter() {
         reportedBy: 'Sister Martha Jenkins (OT Head Nurse)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Surgical Safety Checklist Omission Preset', 'info');
+      notify('Loaded Surgical Safety Checklist Omission Preset (Case: SUR-CASE-3095)', 'info');
     } else if (type === 'WARD_BARCODE') {
       setSituationForm({
         department: 'General Ward',
+        caseId: 'GEN-CASE-5021',
         title: 'High-Alert Medication Barcode Scanning Bypass',
         severity: 'MEDIUM',
         standardCode: 'MOM.5',
@@ -508,7 +515,7 @@ export default function DataEntryCenter() {
         reportedBy: 'Staff Nurse R. Dave (Ward 4B)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Medication Safety Scan Bypass Preset', 'info');
+      notify('Loaded Medication Safety Scan Bypass Preset (Case: GEN-CASE-5021)', 'info');
     }
   };
 
@@ -520,6 +527,7 @@ export default function DataEntryCenter() {
 
       const payload = {
         department: situationForm.department,
+        caseId: situationForm.caseId || `${situationForm.department.slice(0, 3).toUpperCase()}-CASE-${Date.now().toString().slice(-4)}`,
         title: situationForm.title,
         severity: situationForm.severity,
         standardCode: situationForm.standardCode,
@@ -1232,18 +1240,37 @@ export default function DataEntryCenter() {
             </div>
 
             <form onSubmit={handleSituationSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Target Department *</label>
                   <select
                     value={situationForm.department}
-                    onChange={(e) => setSituationForm({ ...situationForm, department: e.target.value })}
+                    onChange={(e) => {
+                      const newDept = e.target.value;
+                      setSituationForm({ 
+                        ...situationForm, 
+                        department: newDept,
+                        caseId: `${newDept.slice(0, 3).toUpperCase()}-CASE-${Math.floor(1000 + Math.random() * 9000)}`
+                      });
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 focus:outline-none focus:border-rose-500 font-medium"
                   >
                     {['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'].map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Case Identifier *</label>
+                  <input
+                    type="text"
+                    value={situationForm.caseId}
+                    onChange={(e) => setSituationForm({ ...situationForm, caseId: e.target.value })}
+                    placeholder="e.g. ICU-CASE-1042"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono font-bold text-indigo-800 focus:outline-none focus:border-rose-500"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -1365,7 +1392,15 @@ export default function DataEntryCenter() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="bg-white p-3 rounded-xl border border-indigo-100">
+                    <div className="text-[10px] text-indigo-500 font-semibold uppercase">Case Identifier</div>
+                    <div className="font-mono font-bold text-indigo-800 text-xs mt-0.5">{situationResult.caseId || situationForm.caseId}</div>
+                    <div className="text-[10px] text-indigo-600 font-semibold mt-1 flex items-center gap-1">
+                      <FileCheck className="w-3 h-3" /> Trace Linked
+                    </div>
+                  </div>
+
                   <div className="bg-white p-3 rounded-xl border border-rose-100">
                     <div className="text-[10px] text-slate-500 font-semibold uppercase">Evidence Ledger ID</div>
                     <div className="font-mono font-bold text-slate-800 text-xs mt-0.5">{situationResult.evidenceId || 'MINTED'}</div>

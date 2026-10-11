@@ -17,6 +17,7 @@ const CapaPlanSchema = new mongoose.Schema({
     default: 'OPEN' 
   },
   alertId: { type: mongoose.Schema.Types.ObjectId, ref: 'Alert', default: null },
+  caseId: { type: String, trim: true, index: true },
   standardCode: { type: String, default: null },
   priority: { 
     type: String, 

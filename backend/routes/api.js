@@ -20,19 +20,14 @@ const mongoose = require('mongoose');
 
 // System Health & Connectivity
 router.get('/system/status', async (req, res) => {
-  let pyHealth = { online: true, status: 'healthy' };
-  try {
-    pyHealth = await pyService.checkHealth();
-  } catch (e) {
-    pyHealth = { online: true, status: 'healthy', fallback: true };
-  }
-  const mongoStatus = (mongoose.connection && mongoose.connection.readyState === 1) ? 'connected' : 'connected';
+  const pyHealth = await pyService.checkHealth();
+  const mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   
   res.json({
     status: 'success',
     backend: 'online',
     mongoDB: mongoStatus,
-    pythonAIService: 'online',
+    pythonAIService: pyHealth.online ? 'online' : 'offline',
     pythonDetails: pyHealth
   });
 });
