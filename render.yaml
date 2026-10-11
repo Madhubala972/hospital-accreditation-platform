@@ -13,7 +13,7 @@ services:
     name: cn-backend
     runtime: node
     rootDir: backend
-    buildCommand: cd ../frontend && npm install && npm run build && cd ../backend && npm install
+    buildCommand: npm install
     startCommand: node server.js
     plan: free
     envVars:
