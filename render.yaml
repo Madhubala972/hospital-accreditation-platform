@@ -32,13 +32,11 @@ services:
           property: host
 
   # 3. React Frontend Web Application
-  - type: web
+  - type: static
     name: cn-frontend
-    env: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
-    plan: free
     autoDeploy: true
     routes:
       - type: rewrite
