@@ -60,6 +60,7 @@ router.get('/metrics', metricsController.getMetrics);
 router.post('/pathways/traces', pathwaysController.createTrace);
 router.get('/pathways', pathwaysController.getPathways);
 router.get('/pathways/mining', pathwaysController.getProcessMining);
+router.get('/pathways/process-mining', pathwaysController.getProcessMining);
 router.get('/pathways/conformance', pathwaysController.getConformance);
 
 // Compliance Endpoints

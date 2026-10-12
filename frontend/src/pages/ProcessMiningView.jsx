@@ -31,6 +31,14 @@ import {
 
 const DEPARTMENTS = ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward'];
 
+const DEFAULT_REFERENCE_PATHWAYS = {
+  ICU: ["Admission", "Triage", "Lab Cultures", "Central Line Sterile Dressing", "Medication Verification", "Treatment"],
+  Emergency: ["Registration", "Acuity Triage", "Emergency Physician Assessment", "Diagnostic Imaging", "Medication Verification", "Disposition"],
+  Surgery: ["Pre-Op Assessment", "Site Marking & Consent", "Anesthesia Check", "WHO Surgical Safety Checklist", "Surgical Procedure", "Post-Op Recovery"],
+  Cardiology: ["Admission", "Rapid 12-Lead ECG", "Biomarker Lab", "Cath Lab Activation", "Medication Verification", "Angioplasty Intervention"],
+  'General Ward': ["Admission", "Nursing Intake", "Physician Rounds", "Bedside Medication Scan", "Discharge Reconciliation"]
+};
+
 export default function ProcessMiningView() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -156,7 +164,21 @@ export default function ProcessMiningView() {
     return <ErrorState error={error} onRetry={fetchData} />;
   }
 
-  if (!miningData || miningData.totalCases === 0) {
+  const totalCases = miningData?.totalCases ?? miningData?.totalTraces ?? 0;
+  const nodes = miningData?.nodes || [];
+  const edges = miningData?.edges || [];
+  const variants = miningData?.variants || [];
+  const bottlenecks = miningData?.bottlenecks || [];
+
+  const conformanceRate = conformanceData?.conformanceRate ?? conformanceData?.conformancePercentage ?? 100;
+  const compliantTraces = conformanceData?.compliantTraces ?? conformanceData?.compliantTraceCount ?? 0;
+  const deviatedTraces = conformanceData?.deviatedTraces ?? conformanceData?.nonCompliantTraceCount ?? 0;
+  const deviations = conformanceData?.deviations || [];
+  const evidence = conformanceData?.evidence || [];
+  const expectedPath = conformanceData?.expectedPath || DEFAULT_REFERENCE_PATHWAYS[targetDept] || DEFAULT_REFERENCE_PATHWAYS['ICU'] || [];
+  const caseDetails = conformanceData?.caseDetails || [];
+
+  if (!miningData || (totalCases === 0 && (!miningData.nodes || miningData.nodes.length === 0))) {
     return (
       <div className="space-y-6">
         {/* Department Switcher */}
@@ -182,9 +204,6 @@ export default function ProcessMiningView() {
       </div>
     );
   }
-
-  const { totalCases, nodes, edges, variants } = miningData;
-  const { conformanceRate, compliantTraces, deviatedTraces, deviations, evidence, expectedPath, caseDetails } = conformanceData || {};
 
   // Deduplicate cases by caseId so no duplicate cases ever appear in trace audit
   const uniqueCasesMap = new Map();
@@ -456,33 +475,39 @@ export default function ProcessMiningView() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {edges.map((edge, idx) => (
-            <div
-              key={idx}
-              className={`p-3.5 rounded-xl border transition ${
-                edge.avgDurationMinutes > 45
-                  ? 'bg-rose-50/40 border-rose-200'
-                  : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs font-semibold mb-2">
-                <span className="text-slate-900 font-bold truncate max-w-[110px]" title={edge.source}>{edge.source}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span className="text-slate-900 font-bold truncate max-w-[110px]" title={edge.target}>{edge.target}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-600">
-                <span>Frequency: <strong className="text-slate-900">{edge.count} cases</strong></span>
-                <span className="flex items-center gap-1 font-mono">
-                  <Clock className="w-3 h-3 text-slate-400" />
-                  <span className={edge.avgDurationMinutes > 45 ? 'text-rose-700 font-bold' : 'text-slate-700'}>
-                    {edge.avgDurationMinutes}m avg
+        {edges && edges.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {edges.map((edge, idx) => (
+              <div
+                key={idx}
+                className={`p-3.5 rounded-xl border transition ${
+                  edge.avgDurationMinutes > 45
+                    ? 'bg-rose-50/40 border-rose-200'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                  <span className="text-slate-900 font-bold truncate max-w-[110px]" title={edge.source}>{edge.source}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span className="text-slate-900 font-bold truncate max-w-[110px]" title={edge.target}>{edge.target}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-600">
+                  <span>Frequency: <strong className="text-slate-900">{edge.count} cases</strong></span>
+                  <span className="flex items-center gap-1 font-mono">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span className={edge.avgDurationMinutes > 45 ? 'text-rose-700 font-bold' : 'text-slate-700'}>
+                      {edge.avgDurationMinutes}m avg
+                    </span>
                   </span>
-                </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500 font-medium">
+            Directly-follows transitions are being synchronized for {targetDept}.
+          </div>
+        )}
       </div>
 
       {/* Discovered Process Variants with Connected Exact Case Identifiers */}

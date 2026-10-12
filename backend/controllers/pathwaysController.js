@@ -199,12 +199,12 @@ exports.getProcessMining = async (req, res) => {
       .limit(100)
       .lean();
 
-    const miningData = await pyService.analyzeProcessMining(traces);
+    const miningData = await pyService.analyzeProcessMining(traces, targetDept);
 
     res.json({
       status: 'success',
       department: targetDept,
-      totalTracesAnalyzed: traces.length,
+      totalTracesAnalyzed: traces.length || miningData.totalCases || 0,
       data: miningData
     });
   } catch (error) {
