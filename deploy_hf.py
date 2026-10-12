@@ -1,5 +1,12 @@
 import os
 import sys
+
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 from huggingface_hub import HfApi
 
 def deploy_to_huggingface(token=None, space_name="cn"):

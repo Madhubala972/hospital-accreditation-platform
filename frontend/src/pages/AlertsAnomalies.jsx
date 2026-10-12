@@ -83,7 +83,6 @@ export default function AlertsAnomalies() {
 
   const handleCreateCapaFromAlert = async (e) => {
     e.preventDefault();
-    const alertCaseId = capaModalAlert.caseId || `${(capaModalAlert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-1042`;
     try {
       await capaApi.create({
         problem: capaModalAlert.reason,
@@ -92,12 +91,11 @@ export default function AlertsAnomalies() {
         responsiblePerson: capaForm.responsiblePerson,
         deadline: capaForm.deadline,
         alertId: capaModalAlert._id,
-        caseId: alertCaseId,
         standardCode: capaModalAlert.standardCode,
         priority: capaForm.priority,
         predictedImpact: Number(capaForm.predictedImpact) || 30.0
       });
-      notify(`Alert successfully converted to CAPA plan linked to Case ${alertCaseId}!`, 'success');
+      notify('Alert successfully converted to CAPA plan with simulation tracking!', 'success');
       setCapaModalAlert(null);
       fetchAlerts();
     } catch (err) {
@@ -164,13 +162,9 @@ export default function AlertsAnomalies() {
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2.5">
+                <div className="flex items-center gap-2.5">
                   <StatusBadge status={alert.severity} />
                   <h3 className="text-sm font-bold text-slate-900">{alert.title}</h3>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-                    <span className="text-[9px] uppercase tracking-wider text-indigo-500 font-extrabold">CASE:</span>
-                    <span>{alert.caseId || `${(alert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-${(alert._id || '1042').slice(-4)}`}</span>
-                  </span>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
                     {alert.department}
                   </span>
@@ -193,15 +187,8 @@ export default function AlertsAnomalies() {
                 <strong className="text-slate-900">Reason: </strong> {alert.reason}
               </p>
 
-              {/* Multi-Vector Alert Cards: Case ID, Standard, Risk Contribution, Evidence Count, Recommended CAPA */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 bg-white p-3 rounded-xl border border-slate-200/80 text-xs">
-                <div className="p-2 rounded-lg bg-indigo-50/50 border border-indigo-100">
-                  <div className="text-[10px] text-indigo-500 uppercase font-bold tracking-wider">Case Identifier</div>
-                  <div className="font-mono font-bold text-indigo-700 mt-0.5 truncate" title={alert.caseId || `${(alert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-${(alert._id || '1042').slice(-4)}`}>
-                    {alert.caseId || `${(alert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-${(alert._id || '1042').slice(-4)}`}
-                  </div>
-                </div>
-
+              {/* Multi-Vector Alert Cards: Values, Standard, Risk Contribution, Recommended CAPA (Section 11 in PDF) */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5 bg-white p-3 rounded-xl border border-slate-200/80 text-xs">
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/60">
                   <div className="text-[10px] text-slate-500 uppercase font-bold">Standard Target</div>
                   <div className="font-bold text-blue-700 mt-0.5 font-mono">{alert.standardCode || 'NABH-COP.6'}</div>
@@ -304,12 +291,8 @@ export default function AlertsAnomalies() {
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
               <span className="text-slate-500 font-semibold">Problem Identified:</span>
               <div className="font-bold text-slate-900 mt-0.5">{capaModalAlert.reason}</div>
-              <div className="text-[11px] text-blue-700 mt-1.5 font-semibold flex flex-wrap items-center gap-2">
-                <span>Department: {capaModalAlert.department} • Standard: {capaModalAlert.standardCode || 'NABH-COP.6'}</span>
-                <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  <span className="text-[9px] uppercase text-indigo-500 font-extrabold">CASE:</span>
-                  <span>{capaModalAlert.caseId || `${(capaModalAlert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-1042`}</span>
-                </span>
+              <div className="text-[11px] text-blue-700 mt-1 font-semibold">
+                Department: {capaModalAlert.department} • Standard: {capaModalAlert.standardCode || 'NABH-COP.6'}
               </div>
             </div>
 

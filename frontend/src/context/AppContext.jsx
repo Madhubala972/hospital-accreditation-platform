@@ -28,7 +28,7 @@ export const AppProvider = ({ children }) => {
 
   useEffect(() => {
     checkStatus();
-    const interval = setInterval(checkStatus, 5000); // Heartbeat every 5s for fast status sync
+    const interval = setInterval(checkStatus, 30000); // Heartbeat every 30s
     return () => clearInterval(interval);
   }, []);
 

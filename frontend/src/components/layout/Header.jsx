@@ -14,7 +14,7 @@ const departments = [
 ];
 
 export default function Header() {
-  const { selectedDepartment, setSelectedDepartment, systemStatus, checkStatus, triggerRefresh } = useApp();
+  const { selectedDepartment, setSelectedDepartment, systemStatus, triggerRefresh } = useApp();
   const { user, pendingCount } = useAuth();
   const isDean = user?.role === 'Dean' || user?.role === 'Admin';
 
@@ -84,12 +84,9 @@ export default function Header() {
 
         {/* Refresh Action */}
         <button
-          onClick={() => {
-            triggerRefresh();
-            checkStatus();
-          }}
+          onClick={triggerRefresh}
           className="flex items-center gap-1.5 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 hover:border-blue-200 transition shadow-sm"
-          title="Refresh Current View Data & Connection Status"
+          title="Refresh Current View Data"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Sync</span>

@@ -1,5 +1,4 @@
 import sys
-import os
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -139,6 +138,6 @@ def route_counterfactual():
         return jsonify({"status": "error", "message": str(e)}), 400
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
+    port = 5001
     logger.info(f"Starting Hospital Accreditation AI Flask Service on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)

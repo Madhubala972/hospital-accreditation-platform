@@ -1,17 +1,8 @@
 services:
-  # 1. Python AI Microservice (PM4Py, SimPy, scikit-learn)
+  # 1. Node.js Backend API Service
   - type: web
-    name: cn-ai-service
-    runtime: python
-    rootDir: ai-service
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --workers 2 --timeout 120
-    plan: free
-
-  # 2. Node.js Express Backend API
-  - type: web
-    name: cn-backend
-    runtime: node
+    name: cn-hospital-backend
+    env: node
     rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
@@ -19,24 +10,26 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: MONGO_URI
         value: mongodb+srv://mb9618951_db_user:ma%402110sa@cluster0.z3np1k0.mongodb.net/hospital_accreditation?retryWrites=true&w=majority
       - key: JWT_SECRET
         generateValue: true
       - key: PY_SERVICE_URL
-        value: https://cn-ai-service.onrender.com
+        fromService:
+          type: web
+          name: cn-hospital-ai
+          property: host
 
-  # 3. React Frontend Web Application (Static Site)
+  # 2. Python AI Microservice (PM4Py, SimPy, Scikit-Learn)
   - type: web
-    name: cn-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    name: cn-hospital-ai
+    env: python
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
     envVars:
-      - key: VITE_API_URL
-        value: https://cn-backend-5pnj.onrender.com
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - key: PORT
+        value: 5001

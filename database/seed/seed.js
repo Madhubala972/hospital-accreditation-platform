@@ -767,17 +767,15 @@ async function seedDatabase() {
   await PatientPathway.create(allPathwaysToInsert);
 
   // 5. Seed Real Alerts
-  // 5. Seed Real Alerts with Exact Case Identifiers
-  console.log('[Seed] Seeding alerts with Case Identifiers...');
+  console.log('[Seed] Seeding alerts...');
   const alertsToInsert = [
     {
       title: 'ICU Risk Escalation [CRITICAL]',
       department: 'ICU',
       severity: 'CRITICAL',
-      caseId: 'ICU-CASE-1042',
       reason: 'Pathway conformance deficit (76%) & 12 traces skipped mandatory medication verification',
       evidence: [
-        '12 of 50 patient traces (24%) skipped mandatory step \'Medication Verification\' [Evidence: EV-ICU-01 | Case: ICU-CASE-1042]',
+        '12 of 50 patient traces (24%) skipped mandatory step \'Medication Verification\' [Evidence: EV-ICU-01]',
         'ICU occupancy 94.0% exceeds safe operating threshold 85%'
       ],
       abnormalValue: '76% Conformance',
@@ -795,10 +793,9 @@ async function seedDatabase() {
       title: 'Emergency Waiting Time Threshold Exceeded',
       department: 'Emergency',
       severity: 'HIGH',
-      caseId: 'EME-CASE-2081',
       reason: 'Average door-to-doctor triage contact time reached 48 minutes (Threshold <= 30 mins)',
       evidence: [
-        '5 traces exhibited prolonged waiting time (>60 mins) before physician triage [Evidence: EV-EME-01 | Case: EME-CASE-2081]'
+        '5 traces exhibited prolonged waiting time (>60 mins) before physician triage'
       ],
       abnormalValue: '48 mins',
       expectedValue: '<= 30 mins',
@@ -810,78 +807,17 @@ async function seedDatabase() {
       status: 'ACKNOWLEDGED',
       source: 'ANOMALY_DETECTOR',
       standardCode: 'NABH-AAC.4'
-    },
-    {
-      title: 'Surgical Safety Checklist Timeout Non-Conformance',
-      department: 'Surgery',
-      severity: 'HIGH',
-      caseId: 'SUR-CASE-3095',
-      reason: 'Mandatory pre-incision surgical timeout step omitted in Operating Theatre 3',
-      evidence: [
-        'Electronic timeout timestamp absent in surgical log for procedure [Evidence: EV-SUR-IPSG4-01 | Case: SUR-CASE-3095]'
-      ],
-      abnormalValue: 'Timeout Missing',
-      expectedValue: 'Mandatory Prior to Incision',
-      supportingEvidenceIds: ['EV-SUR-IPSG4-01'],
-      evidenceCount: 2,
-      integrityStatus: 'VERIFIED',
-      riskContribution: 22,
-      recommendedCapa: 'Mandate digital timeout verification gate on OT touchscreen prior to surgical knife release',
-      status: 'OPEN',
-      source: 'COMPLIANCE_ENGINE',
-      standardCode: 'JCI-IPSG.4'
-    },
-    {
-      title: 'Cardiology Cath Lab Door-to-Balloon Delay',
-      department: 'Cardiology',
-      severity: 'CRITICAL',
-      caseId: 'CAR-CASE-4102',
-      reason: 'Door-to-balloon reperfusion window was 108 minutes, exceeding the 90-minute STEMI benchmark',
-      evidence: [
-        'STEMI pathway trace exceeded standard door-to-balloon window by 18 minutes [Evidence: EV-CAR-COP12-01 | Case: CAR-CASE-4102]'
-      ],
-      abnormalValue: '108 mins',
-      expectedValue: '<= 90 mins',
-      supportingEvidenceIds: ['EV-CAR-COP12-01'],
-      evidenceCount: 2,
-      integrityStatus: 'VERIFIED',
-      riskContribution: 25,
-      recommendedCapa: 'Establish rapid mobile telemetry activation between ER triage and Cath Lab',
-      status: 'CAPA_CREATED',
-      source: 'ANOMALY_DETECTOR',
-      standardCode: 'NABH-COP.12'
-    },
-    {
-      title: 'General Ward Barcode Medication Scan Bypass',
-      department: 'General Ward',
-      severity: 'MEDIUM',
-      caseId: 'GEN-CASE-5021',
-      reason: 'High-alert potassium chloride infusion administered without standard handheld barcode scan',
-      evidence: [
-        'EHR alert triggered: manual bypass override recorded by nursing terminal [Evidence: EV-GEN-COP6-01 | Case: GEN-CASE-5021]'
-      ],
-      abnormalValue: 'Manual Bypass Override',
-      expectedValue: '100% Barcode Verification',
-      supportingEvidenceIds: ['EV-GEN-COP6-01'],
-      evidenceCount: 1,
-      integrityStatus: 'VERIFIED',
-      riskContribution: 12,
-      recommendedCapa: 'Conduct nursing unit refresher training and recalibrate optical barcode scanners',
-      status: 'OPEN',
-      source: 'COMPLIANCE_ENGINE',
-      standardCode: 'NABH-COP.6'
     }
   ];
 
   const createdAlerts = await Alert.create(alertsToInsert);
 
-  // 6. Seed CAPA Plans with Linked Case Identifiers
-  console.log('[Seed] Seeding CAPA items with Case Identifiers...');
+  // 6. Seed CAPA Plans
+  console.log('[Seed] Seeding CAPA items...');
   const capaPlans = [
     {
       problem: '12 of 50 ICU patient traces skipped mandatory two-clinician medication verification checkpoint',
       department: 'ICU',
-      caseId: 'ICU-CASE-1042',
       action: 'Implement mandatory digital barcode scanning checkpoint at bedside before administration and conduct nursing protocol refresher.',
       responsiblePerson: 'Elena Rostova (Lead Quality Auditor)',
       deadline: new Date(now + 7 * DAY_MS),
@@ -906,12 +842,10 @@ async function seedDatabase() {
     {
       problem: 'Cardiology ECG acquisition time standard gap during weekend shifts',
       department: 'Cardiology',
-      caseId: 'CAR-CASE-4102',
       action: 'Establish bedside mobile ECG protocol with direct telemetry uplink to on-call cardiologist.',
       responsiblePerson: 'Dr. Sarah Jenkins',
       deadline: new Date(now - 2 * DAY_MS),
       status: 'COMPLETED',
-      alertId: createdAlerts[3]._id,
       standardCode: 'NABH-COP.12',
       priority: 'MEDIUM',
       rootCauseAnalysis: 'Delay in technician transit between floors.',
@@ -938,31 +872,6 @@ async function seedDatabase() {
       improvementPercentage: 50.0,
       verificationNotes: 'Closed loop verified: Telemetry uplink reduced ECG acquisition time to 8 mins average. Predicted 45.0% vs Actual 50.0% improvement (Accuracy: 90.0%). Verification Status: VERIFIED_EFFECTIVE.',
       completedAt: new Date(now - 1 * DAY_MS)
-    },
-    {
-      problem: 'Mandatory pre-incision surgical timeout step omitted in Operating Theatre 3',
-      department: 'Surgery',
-      caseId: 'SUR-CASE-3095',
-      action: 'Mandate digital timeout verification gate on OT touchscreen prior to surgical knife release.',
-      responsiblePerson: 'Dr. Ananya Roy (Surgical Fellow)',
-      deadline: new Date(now + 10 * DAY_MS),
-      status: 'ASSIGNED',
-      alertId: createdAlerts[2]._id,
-      standardCode: 'JCI-IPSG.4',
-      priority: 'HIGH',
-      rootCauseAnalysis: 'Circulating nurse was simultaneously logging specimen accession.',
-      predictedImpact: 35.0,
-      actualImpact: 0,
-      verificationStatus: 'PENDING_VERIFICATION',
-      supportingEvidenceIds: ['EV-SUR-IPSG4-01'],
-      simulationId: 'SIM-SUR-015',
-      beforeMetrics: {
-        riskScore: 54.0,
-        complianceRate: 88.0,
-        occupancyRate: 82.0,
-        infectionRate: 1.6,
-        recordedAt: new Date(now - 2 * DAY_MS)
-      }
     }
   ];
 

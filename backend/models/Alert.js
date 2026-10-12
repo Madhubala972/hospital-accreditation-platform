@@ -34,7 +34,6 @@ const AlertSchema = new mongoose.Schema({
     default: 'COMPLIANCE_ENGINE'
   },
   standardCode: { type: String, default: null },
-  caseId: { type: String, trim: true, index: true },
   capaId: { type: mongoose.Schema.Types.ObjectId, ref: 'CapaPlan', default: null },
   createdAt: { type: Date, default: Date.now },
   resolvedAt: { type: Date, default: null }

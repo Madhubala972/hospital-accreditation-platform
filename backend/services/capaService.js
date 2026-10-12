@@ -18,7 +18,6 @@ const capaService = {
       responsiblePerson, 
       deadline, 
       alertId, 
-      caseId,
       standardCode, 
       priority,
       rootCauseAnalysis,
@@ -26,18 +25,6 @@ const capaService = {
       supportingEvidenceIds,
       simulationId
     } = data;
-
-    let linkedCaseId = caseId;
-    if (!linkedCaseId && alertId) {
-      const linkedAlert = await Alert.findById(alertId).lean();
-      if (linkedAlert && linkedAlert.caseId) {
-        linkedCaseId = linkedAlert.caseId;
-      }
-    }
-    if (!linkedCaseId) {
-      const deptPrefix = department ? department.substring(0, 3).toUpperCase() : 'GEN';
-      linkedCaseId = `${deptPrefix}-CASE-${Date.now().toString().slice(-4)}`;
-    }
 
     // Fetch baseline metrics for beforeMetrics
     const latestMetric = await HospitalMetric.findOne({ department }).sort({ timestamp: -1 }).lean();
@@ -59,7 +46,6 @@ const capaService = {
       responsiblePerson,
       deadline: new Date(deadline),
       alertId: alertId || null,
-      caseId: linkedCaseId,
       standardCode: standardCode || null,
       priority: priority || 'HIGH',
       status: 'OPEN',

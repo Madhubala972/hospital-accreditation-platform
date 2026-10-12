@@ -623,12 +623,9 @@ export default function ExecutiveOverview() {
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-slate-50/80 border border-slate-200 hover:border-blue-200 gap-3 transition shadow-xs"
               >
                 <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <StatusBadge status={alert.severity} />
                     <span className="text-xs font-bold text-slate-900">{alert.title}</span>
-                    <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
-                      Case: {alert.caseId || `${(alert.department || 'GEN').slice(0, 3).toUpperCase()}-CASE-${(alert._id || '1042').slice(-4)}`}
-                    </span>
                     <span className="text-[10px] font-bold text-slate-600 px-2 py-0.5 rounded-md bg-slate-200">{alert.department}</span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium">{alert.reason}</p>

@@ -2,8 +2,11 @@ import axios from 'axios';
 
 const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
     if (window.location.hostname.includes('hf.space')) {
-      return 'https://path-invitation-etc-ancient.trycloudflare.com/api';
+      return 'https://cn-hospital-backend.onrender.com/api';
     }
   }
   return '/api';
