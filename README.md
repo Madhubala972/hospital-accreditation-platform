@@ -1,4 +1,14 @@
-# Hospital Accreditation Intelligence System
+---
+title: CN
+emoji: 🏥
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+# CN - Hospital Quality & Clinical Intelligence Platform
 
 > **Final-Year Project Architecture, Closed-Loop Quality Engineering & Implementation**
 > Built with **React + Vite**, **Node.js / Express**, **MongoDB**, **Python Flask (PM4Py, SimPy, scikit-learn)**, and **Gemini AI Explainer**.

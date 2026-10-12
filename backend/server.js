@@ -35,26 +35,14 @@ app.use('/api', apiRoutes);
 
 const path = require('path');
 const fs = require('fs');
+const frontendDist = path.join(__dirname, '../frontend/dist');
 
-// Root health endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    name: 'CN - Hospital Intelligence System API',
-    status: 'online',
-    version: '1.0.0',
-    docs: '/api/system/status'
-  });
-});
-
-// Serve static frontend SPA
-const frontendDist = path.resolve(__dirname, '../frontend/dist');
+// Static Frontend Serving in Production / Docker (Hugging Face)
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.resolve(frontendDist, 'index.html'));
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDist, 'index.html'));
   });
 } else {
   app.get('/', (req, res) => {
@@ -80,17 +68,16 @@ app.use((err, req, res, next) => {
 // Start Server
 const startServer = async () => {
   try {
+    await connectDB();
     app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(`🚀 Hospital Accreditation Backend running on port ${PORT}`);
       console.log(`📡 API Base: http://localhost:${PORT}/api`);
       console.log(`=======================================================`);
     });
-    connectDB().catch(err => {
-      console.error(`[MongoDB Init Error] ${err.message}`);
-    });
   } catch (error) {
     console.error(`Failed to start backend server: ${error.message}`);
+    process.exit(1);
   }
 };
 
