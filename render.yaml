@@ -32,4 +32,6 @@ services:
     plan: free
     envVars:
       - key: PORT
-        value: 5001
+        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.9
