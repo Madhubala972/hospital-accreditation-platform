@@ -84,11 +84,12 @@ exports.createTrace = async (req, res) => {
         evidenceType: 'PATHWAY_TRACE',
         sourceType: 'ClinicalProtocolTrace',
         sourceId: `TRACE-${caseId}`,
-        title: `${department} Clinical Protocol Trace Evidence (${cleanDateFormatted})`,
+        title: `[Case ${caseId}] ${department} Clinical Protocol Trace Evidence (${cleanDateFormatted})`,
         description: isCompliant 
-          ? `Fully compliant patient clinical trajectory verified for case ${caseId} on ${cleanDateFormatted}.` 
-          : `Clinical deviation: Omitted protocol requirements (${missingSteps.join(', ')}) recorded for case ${caseId} on ${cleanDateFormatted}.`,
-        dataPayload: payload,
+          ? `Fully compliant patient clinical trajectory verified for Case Identifier ${caseId} on ${cleanDateFormatted}.` 
+          : `Clinical deviation: Omitted protocol requirements (${missingSteps.join(', ')}) recorded for Case Identifier ${caseId} on ${cleanDateFormatted}.`,
+        dataPayload: { ...payload, caseId },
+        metadata: { caseId },
         originalHash: evHash,
         currentHash: evHash,
         previousHash: prevHash,
@@ -99,7 +100,7 @@ exports.createTrace = async (req, res) => {
         recordedBy: req.user?.name || 'Clinical Staff',
         recordedAt: traceDate,
         integrityStatus: 'VERIFIED',
-        verificationNotes: `SHA-256 cryptographic provenance verified for patient trace ${caseId}.`,
+        verificationNotes: `SHA-256 cryptographic provenance verified for patient Case Identifier ${caseId}.`,
         version: 1
       });
     }

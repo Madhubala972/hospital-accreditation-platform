@@ -7,6 +7,7 @@ const AlertSchema = new mongoose.Schema({
     required: true, 
     enum: ['ICU', 'Emergency', 'Surgery', 'Cardiology', 'General Ward', 'Hospital-Wide'] 
   },
+  caseId: { type: String, default: null, trim: true },
   severity: { 
     type: String, 
     required: true, 

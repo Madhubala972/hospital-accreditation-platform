@@ -401,8 +401,13 @@ export default function ProcessMiningView() {
                   </div>
 
                   {dev.sampleCases && dev.sampleCases.length > 0 && (
-                    <div className="pt-1 text-[10px] text-slate-500 font-mono">
-                      Sample Cases: <span className="text-slate-700 font-semibold">{dev.sampleCases.join(', ')}</span>
+                    <div className="pt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] font-mono border-t border-rose-100">
+                      <span className="font-bold text-rose-700">Connected Case Identifiers:</span>
+                      {dev.sampleCases.map(sc => (
+                        <span key={sc} className="px-2 py-0.5 rounded bg-rose-100 text-rose-900 font-black text-[10px] border border-rose-300">
+                          {sc}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -480,6 +485,93 @@ export default function ProcessMiningView() {
         </div>
       </div>
 
+      {/* Discovered Process Variants with Connected Exact Case Identifiers */}
+      {variants && variants.length > 0 && (
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-600">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Identified Process Variants & Connected Case Identifiers ({targetDept})</h3>
+                  <p className="text-xs text-slate-500">Each unique execution trajectory mapped directly to its assigned patient case identifiers.</p>
+                </div>
+              </div>
+            </div>
+            <span className="self-start sm:self-auto text-xs font-mono px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
+              {variants.length} Unique Execution Variants
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {variants.map((v, vIdx) => {
+              const assignedCases = v.caseIds && v.caseIds.length > 0 
+                ? v.caseIds 
+                : uniqueCases.filter(c => (c.actualPath || []).join(' -> ') === v.variantPath).map(c => c.caseId);
+
+              return (
+                <div key={vIdx} className="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-blue-300 transition space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-lg bg-blue-600 text-white font-mono font-bold text-xs">
+                        Variant #{vIdx + 1}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-700">
+                        {v.caseCount} Cases ({v.percentage}%)
+                      </span>
+                    </div>
+                    {v.variantPath === (expectedPath || []).join(' -> ') && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 100% Reference Compliant
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Activity Sequence */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    {(v.activities || v.variantPath?.split(' -> ') || []).map((step, sIdx, arr) => (
+                      <React.Fragment key={sIdx}>
+                        <span className={`px-2 py-0.5 rounded font-medium border ${
+                          step.includes('Verification') || step.includes('Checklist') || step.includes('ECG')
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            : 'bg-white text-slate-800 border-slate-200'
+                        }`}>
+                          {step}
+                        </span>
+                        {sIdx < arr.length - 1 && (
+                          <ArrowRight className="w-3 h-3 text-slate-400" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+
+                  {/* Connected Case Identifiers Badges */}
+                  <div className="pt-1.5 border-t border-slate-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                      <Hash className="w-3 h-3 text-blue-600" /> Exact Case Identifiers:
+                    </span>
+                    {assignedCases.length > 0 ? (
+                      assignedCases.map(cid => (
+                        <span
+                          key={cid}
+                          className="px-2 py-0.5 rounded bg-white text-blue-800 font-mono font-black text-[11px] border border-blue-200 shadow-2xs"
+                        >
+                          {cid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-400 text-[11px] italic font-mono">None logged in active cohort</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Case-by-Case Trace Inspector */}
       <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -516,7 +608,7 @@ export default function ProcessMiningView() {
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200">
               <tr>
-                <th className="p-3">Case ID & Diagnosis</th>
+                <th className="p-3">Exact Case Identifier & Diagnosis</th>
                 <th className="p-3">Admission Date & Time</th>
                 <th className="p-3">Completed Timestamp</th>
                 <th className="p-3">Evidence ID</th>
@@ -531,8 +623,12 @@ export default function ProcessMiningView() {
                 <tr key={c.caseId} className="hover:bg-blue-50/40 transition group">
                   {/* Case ID & Diagnosis */}
                   <td className="p-3">
-                    <div className="font-mono font-bold text-slate-900">{c.caseId}</div>
-                    <div className="text-[10px] text-slate-500 font-medium truncate max-w-[160px]" title={c.admissionDiagnosis}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border-2 border-blue-200 font-mono font-black text-xs shadow-2xs">
+                        {c.caseId}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium truncate max-w-[160px] mt-1" title={c.admissionDiagnosis}>
                       {c.admissionDiagnosis || 'Clinical Observation'}
                     </div>
                   </td>
@@ -806,7 +902,7 @@ export default function ProcessMiningView() {
               <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-xs shrink-0 mt-1">
                 <GitFork className="w-5 h-5" />
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
                     TRACE AUDIT TIMELINE
@@ -819,10 +915,13 @@ export default function ProcessMiningView() {
                     label={selectedCaseForAudit.isCompliant ? 'Compliant' : 'Deviated'}
                   />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mt-1 font-mono">
-                  {selectedCaseForAudit.caseId}
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exact Case Identifier:</span>
+                  <span className="px-3 py-1 rounded-xl bg-blue-600 text-white font-mono font-black text-sm shadow-sm tracking-wide">
+                    {selectedCaseForAudit.caseId}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mt-1">
                   Diagnosis: <strong className="text-slate-700">{selectedCaseForAudit.admissionDiagnosis || 'Clinical Observation'}</strong>
                 </p>
               </div>

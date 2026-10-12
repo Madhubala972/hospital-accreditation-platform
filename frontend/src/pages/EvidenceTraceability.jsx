@@ -188,6 +188,20 @@ export default function EvidenceTraceability() {
     return ev?.verifiedAt || ev?.recordedAt || ev?.createdAt || ev?.dataPayload?.date || ev?.dataPayload?.timestamp || new Date();
   };
 
+  // Extract exact Case Identifier helper for evidence items
+  const extractCaseId = (e) => {
+    if (!e) return null;
+    return e.metadata?.caseId || e.dataPayload?.caseId || (
+      e.sourceId?.startsWith('TRACE-') ? e.sourceId.replace('TRACE-', '') : null
+    ) || (
+      e.sourceId?.startsWith('CASE-') ? e.sourceId.replace('CASE-', '') : null
+    ) || (
+      e.title?.match(/\[Case\s+([^\]]+)\]/)?.[1]
+    ) || (
+      e.description?.match(/Case\s+(?:Identifier\s+)?([A-Z]+-[A-Z0-9]+-\d+)/i)?.[1]
+    );
+  };
+
   // Strictly deduplicate Pending vs Cryptographically Sealed Evidence to prevent duplicate rows
   const uniquePendingMap = new Map();
   evidenceList.forEach((e) => {
@@ -207,12 +221,15 @@ export default function EvidenceTraceability() {
 
   // Filtered sealed items
   const filteredSealedEvidence = sealedItems.filter((e) => {
+    const evCaseId = extractCaseId(e);
     const matchesSearch =
       e.evidenceId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.standardCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.verifiedBy?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.recordedBy?.toLowerCase().includes(searchQuery.toLowerCase());
+      e.recordedBy?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.currentHash?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (evCaseId && evCaseId.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesType = selectedType === 'ALL' || e.evidenceType === selectedType;
     return matchesSearch && matchesType;
   });
@@ -498,10 +515,16 @@ export default function EvidenceTraceability() {
                   className="p-4 rounded-xl border border-amber-200 bg-amber-50/30 hover:bg-amber-50/60 transition space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                         {item.evidenceId}
                       </span>
+                      {extractCaseId(item) && (
+                        <span className="px-2 py-0.5 rounded font-mono text-[10px] font-black bg-blue-100 text-blue-900 border border-blue-300 flex items-center gap-1 shadow-2xs">
+                          <Hash className="w-3 h-3 text-blue-600" />
+                          <span>Case: {extractCaseId(item)}</span>
+                        </span>
+                      )}
                       <strong className="text-slate-900 text-xs">{item.title}</strong>
                     </div>
                     <div className="flex items-center gap-2">
@@ -521,7 +544,11 @@ export default function EvidenceTraceability() {
                     {item.description}
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] bg-white p-3 rounded-lg border border-slate-200/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[11px] bg-white p-3 rounded-lg border border-slate-200/80">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Exact Case Identifier:</span>
+                      <strong className="text-blue-900 font-mono font-black">{extractCaseId(item) || 'Department Metric'}</strong>
+                    </div>
                     <div>
                       <span className="text-slate-400 block text-[10px]">Source Stream:</span>
                       <strong className="text-slate-800">{item.sourceType} ({item.sourceId})</strong>
@@ -603,8 +630,8 @@ export default function EvidenceTraceability() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Block, ID, Standard, Signer..."
-                  className="pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search Case Identifier, Block #, Standard, Hash, Signer..."
+                  className="pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl w-72 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -642,6 +669,8 @@ export default function EvidenceTraceability() {
                 ) : (
                   filteredSealedEvidence.map((ev) => {
                     const isJustSealed = ev.evidenceId === newlySealedId;
+                    const evCaseId = extractCaseId(ev);
+
                     return (
                       <tr 
                         key={ev._id || ev.evidenceId} 
@@ -654,6 +683,14 @@ export default function EvidenceTraceability() {
                             </span>
                             <span className="font-bold text-blue-700">{ev.evidenceId}</span>
                           </div>
+                          {evCaseId && (
+                            <div className="mt-1 flex items-center gap-1 font-sans">
+                              <span className="text-[10px] text-slate-500 font-semibold">Case:</span>
+                              <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-900 border border-blue-200 font-mono font-black text-[10px]">
+                                {evCaseId}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-slate-800">{ev.department}</div>
@@ -865,7 +902,11 @@ export default function EvidenceTraceability() {
 
             {/* Evidence Metadata & Raw Data */}
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Exact Case Identifier:</span>
+                  <strong className="text-blue-900 font-mono font-black">{extractCaseId(selectedEvidence) || 'Unit / Cohort'}</strong>
+                </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Department:</span>
                   <strong className="text-slate-900">{selectedEvidence.department}</strong>
@@ -994,7 +1035,13 @@ export default function EvidenceTraceability() {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Case Identifier:</span>
+                  <div className="font-mono font-black text-blue-900 text-xs truncate" title={extractCaseId(selectedEvidence) || 'Cohort / Unit Wide'}>
+                    {extractCaseId(selectedEvidence) || 'Unit Wide'}
+                  </div>
+                </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Department:</span>
                   <div className="font-bold text-slate-900">{selectedEvidence.department}</div>
@@ -1005,7 +1052,7 @@ export default function EvidenceTraceability() {
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Verified By:</span>
-                  <div className="font-bold text-slate-900">{selectedEvidence.verifiedBy || selectedEvidence.recordedBy}</div>
+                  <div className="font-bold text-slate-900 truncate">{selectedEvidence.verifiedBy || selectedEvidence.recordedBy}</div>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Chain Block #:</span>

@@ -31,6 +31,7 @@ exports.createAlert = async (req, res) => {
     const {
       title,
       department,
+      caseId,
       severity = 'HIGH',
       reason,
       standardCode = 'NABH-COP.6',
@@ -57,6 +58,7 @@ exports.createAlert = async (req, res) => {
     const evPayload = {
       incidentTitle: title,
       department,
+      caseId: caseId || null,
       severity,
       reason,
       standardCode,
@@ -71,10 +73,13 @@ exports.createAlert = async (req, res) => {
         standardCode,
         evidenceType: 'INCIDENT',
         sourceType: 'CriticalIncidentReport',
-        sourceId: `INCIDENT-${Date.now()}`,
-        title: `Critical Situation: ${title} (${cleanDateFormatted})`,
-        description: `Clinical safety event / deviation recorded for ${department}. Reason: ${reason}`,
+        sourceId: caseId ? `CASE-${caseId}` : `INCIDENT-${Date.now()}`,
+        title: caseId ? `[Case ${caseId}] Critical Situation: ${title} (${cleanDateFormatted})` : `Critical Situation: ${title} (${cleanDateFormatted})`,
+        description: caseId 
+          ? `Clinical safety event / deviation recorded for Case Identifier ${caseId} in ${department}. Reason: ${reason}`
+          : `Clinical safety event / deviation recorded for ${department}. Reason: ${reason}`,
         dataPayload: evPayload,
+        metadata: caseId ? { caseId } : {},
         recordedBy: reportedBy || req.user?.name || 'Clinical Quality Lead'
       });
     } catch (evErr) {
@@ -85,10 +90,13 @@ exports.createAlert = async (req, res) => {
     const alert = await Alert.create({
       title,
       department,
+      caseId: caseId || null,
       severity,
       reason,
       evidence: [
-        `Clinical situation recorded: ${reason} [Evidence: ${evidenceId} -> ${standardCode}]`
+        caseId 
+          ? `[Case Identifier: ${caseId}] Clinical situation recorded: ${reason} [Evidence: ${evidenceId} -> ${standardCode}]`
+          : `Clinical situation recorded: ${reason} [Evidence: ${evidenceId} -> ${standardCode}]`
       ],
       supportingEvidenceIds: [evidenceId],
       evidenceCount: 1,

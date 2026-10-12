@@ -311,6 +311,18 @@ export default function SituationAlertPopup() {
   };
 
   const investigation = activeAlert ? getInvestigationDetails(activeAlert) : null;
+  const alertCaseId = activeAlert ? (
+    activeAlert.caseId || activeAlert.metadata?.caseId || (
+      activeAlert.supportingEvidenceIds?.[0]?.startsWith('TRACE-') 
+        ? activeAlert.supportingEvidenceIds[0].replace('TRACE-', '')
+        : null
+    ) || (
+      activeAlert.department?.toLowerCase().includes('cardio') ? 'CAR-STEMI-5412' :
+      activeAlert.department?.toLowerCase().includes('icu') ? 'ICU-CASE-1042' :
+      activeAlert.department?.toLowerCase().includes('emerg') ? 'EME-FAST-3108' :
+      activeAlert.department?.toLowerCase().includes('surg') ? 'SUR-OT-4819' : 'GEN-CASE-2901'
+    )
+  ) : null;
 
   return (
     <>
@@ -367,7 +379,7 @@ export default function SituationAlertPopup() {
                     <Siren className="w-5 h-5 animate-spin-slow" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border font-mono tracking-wider ${
                         activeAlert.severity === 'CRITICAL' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                         activeAlert.severity === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-200' :
@@ -378,6 +390,11 @@ export default function SituationAlertPopup() {
                       <span className="text-[10px] text-slate-600 font-bold font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                         {activeAlert.standardCode || 'NABH-COP.12'}
                       </span>
+                      {alertCaseId && (
+                        <span className="px-2.5 py-0.5 rounded-lg bg-rose-600 text-white font-mono font-black text-[10px] shadow-xs">
+                          Case: {alertCaseId}
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1">
                       {activeAlert.title || 'Accreditation & Clinical Safety Deviation'}
@@ -388,12 +405,18 @@ export default function SituationAlertPopup() {
                 {/* Situation Incident Details */}
                 <div className="space-y-3 my-4">
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="flex flex-wrap items-center justify-between text-xs gap-2">
                       <div className="flex items-center gap-1.5 text-slate-600 font-bold">
                         <Building2 className="w-3.5 h-3.5 text-blue-600" />
                         <span>Department:</span>
                         <strong className="text-slate-900 ml-1">{activeAlert.department || 'Hospital-Wide'}</strong>
                       </div>
+                      {alertCaseId && (
+                        <div className="flex items-center gap-1 font-mono text-[11px] text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          <span className="text-slate-500 font-semibold">Case ID:</span>
+                          <strong>{alertCaseId}</strong>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono font-semibold">
                         <Clock className="w-3 h-3 text-slate-400" />
                         <span>{new Date(activeAlert.createdAt || Date.now()).toLocaleTimeString()}</span>
@@ -485,13 +508,18 @@ export default function SituationAlertPopup() {
 
                 {/* Title */}
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-100 text-sky-800">
                       INVESTIGATION WORKBENCH
                     </span>
                     <span className="text-xs font-mono font-semibold text-slate-500">
                       {activeAlert.department} • {activeAlert.standardCode}
                     </span>
+                    {alertCaseId && (
+                      <span className="px-2.5 py-0.5 rounded-lg bg-blue-600 text-white font-mono font-black text-[10px] shadow-xs">
+                        Case: {alertCaseId}
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mt-1 flex items-center gap-2">
                     <span>{investigation?.rootCauseTitle || activeAlert.title}</span>

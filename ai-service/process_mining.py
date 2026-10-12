@@ -20,6 +20,7 @@ def analyze_process_mining(traces):
         }
 
     variant_counter = Counter()
+    variant_cases = defaultdict(list)
     edges_count = defaultdict(int)
     edges_duration_sum = defaultdict(float)
     activity_counts = defaultdict(int)
@@ -27,6 +28,7 @@ def analyze_process_mining(traces):
     total_cases = len(traces)
     
     for case in traces:
+        case_id = case.get('caseId')
         events = case.get('events', [])
         # Sort events by timestamp if available
         try:
@@ -43,6 +45,8 @@ def analyze_process_mining(traces):
             
         variant_key = " -> ".join(activities)
         variant_counter[variant_key] += 1
+        if case_id and case_id not in variant_cases[variant_key]:
+            variant_cases[variant_key].append(case_id)
         
         for act in activities:
             activity_counts[act] += 1
@@ -99,7 +103,8 @@ def analyze_process_mining(traces):
             "variantPath": var_str,
             "activities": var_str.split(" -> "),
             "caseCount": count,
-            "percentage": round((count / max(1, total_cases)) * 100.0, 1)
+            "percentage": round((count / max(1, total_cases)) * 100.0, 1),
+            "caseIds": variant_cases.get(var_str, [])
         })
         
     return {

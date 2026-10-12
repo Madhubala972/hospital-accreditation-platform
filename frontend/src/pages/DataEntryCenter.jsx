@@ -149,6 +149,7 @@ export default function DataEntryCenter() {
 
   // Critical Situation & Safety Incident Form State (Separate Block)
   const [situationForm, setSituationForm] = useState({
+    caseId: `${initialDeptPrefix}-CASE-1042`,
     department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
     title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
     severity: 'CRITICAL',
@@ -451,6 +452,7 @@ export default function DataEntryCenter() {
   const applySituationPreset = (type) => {
     if (type === 'ICU_CLABSI') {
       setSituationForm({
+        caseId: 'ICU-CASE-1042',
         department: 'ICU',
         title: 'Central Line-Associated Bloodstream Infection (CLABSI) Alarm',
         severity: 'CRITICAL',
@@ -460,9 +462,10 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Arthur Vance (ICU Intensivist)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded ICU CLABSI Incident Preset', 'info');
+      notify('Loaded ICU CLABSI Incident Preset for Case ICU-CASE-1042', 'info');
     } else if (type === 'CARDIO_ECG') {
       setSituationForm({
+        caseId: 'CAR-STEMI-5412',
         department: 'Cardiology',
         title: 'Delayed Door-to-Balloon STEMI Escalation',
         severity: 'HIGH',
@@ -472,9 +475,10 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Priya Sharma (Interventional Cardiologist)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Cardiology STEMI Latency Preset', 'info');
+      notify('Loaded Cardiology STEMI Latency Preset for Case CAR-STEMI-5412', 'info');
     } else if (type === 'ER_OVERFLOW') {
       setSituationForm({
+        caseId: 'EME-FAST-3108',
         department: 'Emergency',
         title: 'Severe Emergency Department Surge & Triage Divert Risk',
         severity: 'CRITICAL',
@@ -484,9 +488,10 @@ export default function DataEntryCenter() {
         reportedBy: 'Dr. Marcus Brody (ED Medical Director)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Emergency Room Surge Overflow Preset', 'info');
+      notify('Loaded Emergency Room Surge Overflow Preset for Case EME-FAST-3108', 'info');
     } else if (type === 'SURGERY_TIMEOUT') {
       setSituationForm({
+        caseId: 'SUR-OT-4819',
         department: 'Surgery',
         title: 'WHO Surgical Safety Sign-In Pause Non-Compliance',
         severity: 'HIGH',
@@ -496,9 +501,10 @@ export default function DataEntryCenter() {
         reportedBy: 'Sister Martha Jenkins (OT Head Nurse)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Surgical Safety Checklist Omission Preset', 'info');
+      notify('Loaded Surgical Safety Checklist Omission Preset for Case SUR-OT-4819', 'info');
     } else if (type === 'WARD_BARCODE') {
       setSituationForm({
+        caseId: 'GEN-CASE-2901',
         department: 'General Ward',
         title: 'High-Alert Medication Barcode Scanning Bypass',
         severity: 'MEDIUM',
@@ -508,7 +514,7 @@ export default function DataEntryCenter() {
         reportedBy: 'Staff Nurse R. Dave (Ward 4B)',
         incidentDateTime: getNowLocalDateTime()
       });
-      notify('Loaded Medication Safety Scan Bypass Preset', 'info');
+      notify('Loaded Medication Safety Scan Bypass Preset for Case GEN-CASE-2901', 'info');
     }
   };
 
@@ -519,6 +525,7 @@ export default function DataEntryCenter() {
       setSituationResult(null);
 
       const payload = {
+        caseId: situationForm.caseId,
         department: situationForm.department,
         title: situationForm.title,
         severity: situationForm.severity,
@@ -534,17 +541,19 @@ export default function DataEntryCenter() {
       const evidenceId = res.data?.evidenceId || alertData?.supportingEvidenceIds?.[0];
       const resultObj = {
         ...alertData,
+        caseId: situationForm.caseId,
         evidenceId,
         riskSummary: res.data?.riskSummary
       };
 
       setSituationResult(resultObj);
-      notify(`Critical situation logged! Sealed Evidence #${evidenceId} minted in blockchain ledger.`, 'success');
+      notify(`Critical situation for Case ${situationForm.caseId} logged! Sealed Evidence #${evidenceId} minted.`, 'success');
       triggerRefresh();
 
-      // Trigger the medium-sized popup anchored on the right side!
+      // Trigger the popup anchored on the right side with exact caseId!
       triggerSituationPopup({
         ...alertData,
+        caseId: situationForm.caseId,
         evidenceId,
         supportingEvidenceIds: evidenceId ? [evidenceId] : alertData.supportingEvidenceIds
       });
@@ -881,13 +890,17 @@ export default function DataEntryCenter() {
           <form onSubmit={handlePathwaySubmit} className="space-y-4 text-xs">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Case Identifier *</label>
+                <label className="block font-bold text-blue-900 mb-1 flex items-center justify-between">
+                  <span>Exact Case Identifier *</span>
+                  <span className="text-[10px] font-mono text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded border border-blue-200">Patient ID</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={pathwayForm.caseId}
                   onChange={(e) => setPathwayForm({ ...pathwayForm, caseId: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-mono font-bold focus:outline-none focus:border-blue-500 focus:bg-white"
+                  placeholder="e.g. ICU-CASE-1042"
+                  className="w-full bg-blue-50/50 border-2 border-blue-300 rounded-lg p-2.5 text-blue-900 font-mono font-bold focus:outline-none focus:border-blue-600 focus:bg-white shadow-xs"
                 />
               </div>
 
@@ -1149,22 +1162,27 @@ export default function DataEntryCenter() {
 
           {/* Instant Result Success Card */}
           {pathwayResult && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs mt-4 animate-fade-in">
+            <div className="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 space-y-2 text-xs mt-4 animate-fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                <div className="flex items-center gap-2.5 text-emerald-950 font-bold">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                  <span>Trace {pathwayResult.caseId} Ingested & Analyzed Instantly!</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>Patient Pathway Ingested:</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-mono font-black text-xs shadow-xs">
+                      Case Identifier: {pathwayResult.caseId}
+                    </span>
+                  </div>
                 </div>
                 <Link
                   to="/pathways"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition text-xs self-start sm:self-auto"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition text-xs self-start sm:self-auto"
                 >
                   <span>View in Process Mining & Trace Inspector</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
               <p className="text-slate-700 text-xs">
-                Patient pathway was saved with verified timestamps. The PM4Py Conformance Engine and department readiness scores have updated across the platform.
+                Patient pathway for Case Identifier <strong className="font-mono text-blue-900">{pathwayResult.caseId}</strong> was saved with verified timestamps. The PM4Py Conformance Engine and department readiness scores have updated across the platform.
               </p>
             </div>
           )}
@@ -1232,7 +1250,22 @@ export default function DataEntryCenter() {
             </div>
 
             <form onSubmit={handleSituationSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block font-bold text-rose-900 mb-1 flex items-center justify-between">
+                    <span>Connected Case Identifier *</span>
+                    <span className="text-[10px] font-mono text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-200">Patient ID</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={situationForm.caseId}
+                    onChange={(e) => setSituationForm({ ...situationForm, caseId: e.target.value })}
+                    placeholder="e.g. ICU-CASE-1042"
+                    className="w-full bg-rose-50/50 border-2 border-rose-300 rounded-lg p-2.5 font-mono font-black text-rose-900 focus:outline-none focus:border-rose-600 focus:bg-white shadow-xs"
+                    required
+                  />
+                </div>
+
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Target Department *</label>
                   <select
@@ -1257,20 +1290,20 @@ export default function DataEntryCenter() {
                       'bg-amber-50 border-amber-300 text-amber-800'
                     }`}
                   >
-                    <option value="CRITICAL">🔴 CRITICAL (+30% Department Risk)</option>
-                    <option value="HIGH">🟠 HIGH (+20% Department Risk)</option>
-                    <option value="MEDIUM">🟡 MEDIUM (+10% Department Risk)</option>
+                    <option value="CRITICAL">🔴 CRITICAL (+30% Dept Risk)</option>
+                    <option value="HIGH">🟠 HIGH (+20% Dept Risk)</option>
+                    <option value="MEDIUM">🟡 MEDIUM (+10% Dept Risk)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Accreditation Standard Code *</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Standard Code *</label>
                   <input
                     type="text"
                     value={situationForm.standardCode}
                     onChange={(e) => setSituationForm({ ...situationForm, standardCode: e.target.value })}
                     placeholder="e.g. HIC.2, COP.6, IPSG.4"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-800 focus:outline-none focus:border-rose-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 font-mono text-slate-800 focus:outline-none focus:border-rose-500 font-bold"
                     required
                   />
                 </div>
@@ -1350,11 +1383,16 @@ export default function DataEntryCenter() {
 
             {/* Instant Result Card */}
             {situationResult && (
-              <div className="mt-5 p-4 rounded-2xl bg-rose-50/80 border border-rose-200 space-y-3 animate-fade-in text-xs">
+              <div className="mt-5 p-4 rounded-2xl bg-rose-50/80 border-2 border-rose-300 space-y-3 animate-fade-in text-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-rose-900 font-bold">
+                  <div className="flex items-center gap-2.5 text-rose-950 font-bold">
                     <CheckCircle2 className="w-5 h-5 text-rose-600 shrink-0" />
-                    <span>Critical Situation Logged & Sealed Successfully!</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>Critical Situation Logged:</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-mono font-black text-xs shadow-xs">
+                        Case Identifier: {situationResult.caseId}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => triggerSituationPopup(situationResult)}
@@ -1365,16 +1403,24 @@ export default function DataEntryCenter() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="bg-white p-3 rounded-xl border border-rose-200">
+                    <div className="text-[10px] text-slate-500 font-semibold uppercase">Exact Case Identifier</div>
+                    <div className="font-mono font-black text-rose-700 text-xs mt-0.5">{situationResult.caseId}</div>
+                    <div className="text-[10px] text-blue-600 font-semibold mt-1">
+                      Linked Clinical Patient
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-xl border border-rose-200">
                     <div className="text-[10px] text-slate-500 font-semibold uppercase">Evidence Ledger ID</div>
-                    <div className="font-mono font-bold text-slate-800 text-xs mt-0.5">{situationResult.evidenceId || 'MINTED'}</div>
+                    <div className="font-mono font-bold text-slate-800 text-xs mt-0.5 truncate" title={situationResult.evidenceId}>{situationResult.evidenceId || 'MINTED'}</div>
                     <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                       <Lock className="w-3 h-3" /> SHA-256 Verified
                     </div>
                   </div>
 
-                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                  <div className="bg-white p-3 rounded-xl border border-rose-200">
                     <div className="text-[10px] text-slate-500 font-semibold uppercase">Department Risk Update</div>
                     <div className="font-mono font-bold text-slate-800 text-xs mt-0.5">
                       {situationResult.riskSummary ? `${situationResult.riskSummary.score}% (${situationResult.riskSummary.category})` : 'Recalculated'}
@@ -1384,7 +1430,7 @@ export default function DataEntryCenter() {
                     </div>
                   </div>
 
-                  <div className="bg-white p-3 rounded-xl border border-rose-100">
+                  <div className="bg-white p-3 rounded-xl border border-rose-200">
                     <div className="text-[10px] text-slate-500 font-semibold uppercase">Incident Status</div>
                     <div className="font-mono font-bold text-rose-700 text-xs mt-0.5">OPEN (DISPATCHED)</div>
                     <div className="text-[10px] text-slate-500 font-semibold mt-1">
