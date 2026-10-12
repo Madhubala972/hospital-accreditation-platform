@@ -3,7 +3,7 @@ import axios from 'axios';
 const getBaseUrl = () => {
   if (typeof window !== 'undefined') {
     if (window.location.hostname.includes('hf.space')) {
-      return 'https://portfolio-invitation-introduces-reducing.trycloudflare.com/api';
+      return 'https://path-invitation-etc-ancient.trycloudflare.com/api';
     }
   }
   return '/api';
