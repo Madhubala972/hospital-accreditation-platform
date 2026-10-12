@@ -1,20 +1,16 @@
 import axios from 'axios';
 
-let resolvedBaseURL = import.meta.env.VITE_API_URL || '/api';
-
-if (resolvedBaseURL && !resolvedBaseURL.startsWith('http') && !resolvedBaseURL.startsWith('/')) {
-  resolvedBaseURL = `https://${resolvedBaseURL}`;
-}
-
-if (resolvedBaseURL && resolvedBaseURL !== '/api') {
-  resolvedBaseURL = resolvedBaseURL.replace(/\/+$/, '');
-  if (!resolvedBaseURL.endsWith('/api')) {
-    resolvedBaseURL = `${resolvedBaseURL}/api`;
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('hf.space')) {
+      return 'https://portfolio-invitation-introduces-reducing.trycloudflare.com/api';
+    }
   }
-}
+  return '/api';
+};
 
 const api = axios.create({
-  baseURL: resolvedBaseURL,
+  baseURL: getBaseUrl(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
