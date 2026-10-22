@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": "https://cn-hospital-backend-d2t1.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
