@@ -5,7 +5,7 @@
       "destination": "https://assist-diagnostic-divx-latina.trycloudflare.com/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
