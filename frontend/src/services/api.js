@@ -15,11 +15,28 @@ const getBaseUrl = () => {
 
 const api = axios.create({
   baseURL: getBaseUrl(),
-  timeout: 15000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
   }
 });
+
+// Auto-retry once on cold start/timeout
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    if (!config || config.__isRetry) {
+      return Promise.reject(error);
+    }
+    if (error.code === 'ECONNABORTED' || (error.response && [502, 503, 504].includes(error.response.status))) {
+      config.__isRetry = true;
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      return api(config);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Attach JWT token if present
 api.interceptors.request.use((config) => {
