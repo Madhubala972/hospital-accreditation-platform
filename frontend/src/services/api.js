@@ -5,6 +5,10 @@ const getBaseUrl = () => {
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL;
     }
+    // In production (Vercel, Hugging Face, or remote), connect directly to the active 24/7 Render backend
+    if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return 'https://cn-hospital-backend-d2t1.onrender.com/api';
+    }
   }
   return '/api';
 };
