@@ -75,29 +75,6 @@ const startServer = async () => {
       console.log(`📡 API Base: http://localhost:${PORT}/api`);
       console.log(`=======================================================`);
     });
-
-    // 24/7 Keep-alive heartbeat: ping Python AI and self-ping every 3 minutes so Render never sleeps
-    const pyConnector = require('./services/pyServiceConnector');
-    const axios = require('axios');
-    const KEEP_ALIVE_INTERVAL = 3 * 60 * 1000;
-
-    setInterval(async () => {
-      try {
-        await pyConnector.checkHealth();
-      } catch (err) {
-        // keep alive
-      }
-
-      const selfUrl = process.env.RENDER_EXTERNAL_URL;
-      if (selfUrl) {
-        try {
-          await axios.get(`${selfUrl}/api/system/status`, { timeout: 15000 });
-        } catch (err) {
-          // keep alive
-        }
-      }
-    }, KEEP_ALIVE_INTERVAL);
-
   } catch (error) {
     console.error(`Failed to start backend server: ${error.message}`);
     process.exit(1);
