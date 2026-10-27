@@ -9,12 +9,10 @@ import {
   GitFork,
   SlidersHorizontal,
   Cpu,
-  Radar,
   ShieldCheck,
   ShieldAlert,
   AlertTriangle,
   FileText,
-  BotMessageSquare,
   Building2,
   UserCheck,
   LogIn,
@@ -31,7 +29,6 @@ const baseNavItems = [
   { name: 'PM4Py Process Mining', path: '/process-mining', icon: GitFork },
   { name: 'Counterfactual Analysis', path: '/counterfactual', icon: SlidersHorizontal },
   { name: 'SimPy Digital Twin', path: '/digital-twin', icon: Cpu },
-  { name: 'Peer Benchmark Radar', path: '/benchmarks', icon: Radar },
   { name: 'Alerts & Anomalies', path: '/alerts', icon: AlertTriangle },
   { 
     name: 'Executive Reports', 
@@ -39,7 +36,6 @@ const baseNavItems = [
     icon: FileText,
     badge: 'Auditor & Dean'
   },
-  { name: 'AI Copilot Assistant', path: '/copilot', icon: BotMessageSquare },
 ];
 
 export default function Sidebar() {

@@ -13,11 +13,9 @@ const OperationalMetrics = lazy(() => import('./pages/OperationalMetrics'));
 const ProcessMiningView = lazy(() => import('./pages/ProcessMiningView'));
 const CounterfactualAnalysis = lazy(() => import('./pages/CounterfactualAnalysis'));
 const DigitalTwinView = lazy(() => import('./pages/DigitalTwinView'));
-const PeerBenchmarkRadar = lazy(() => import('./pages/PeerBenchmarkRadar'));
 const AccreditationStandards = lazy(() => import('./pages/AccreditationStandards'));
 const AlertsAnomalies = lazy(() => import('./pages/AlertsAnomalies'));
 const ExecutiveReports = lazy(() => import('./pages/ExecutiveReports'));
-const AICopilot = lazy(() => import('./pages/AICopilot'));
 const DeanApprovals = lazy(() => import('./pages/DeanApprovals'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
@@ -40,11 +38,9 @@ export default function App() {
               <Route path="counterfactual" element={<CounterfactualAnalysis />} />
               <Route path="digital-twin" element={<DigitalTwinView />} />
               <Route path="simulation" element={<DigitalTwinView />} />
-              <Route path="benchmarks" element={<PeerBenchmarkRadar />} />
               <Route path="standards" element={<AccreditationStandards />} />
               <Route path="alerts" element={<AlertsAnomalies />} />
               <Route path="reports" element={<ExecutiveReports />} />
-              <Route path="copilot" element={<AICopilot />} />
               <Route path="dean-approvals" element={<DeanApprovals />} />
               <Route path="*" element={<Navigate to="/" replace />} />
 
