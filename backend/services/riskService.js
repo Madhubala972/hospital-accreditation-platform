@@ -133,7 +133,14 @@ const riskService = {
     else if (finalScore >= 35) finalCategory = 'MEDIUM';
 
     // 11. Combine contributing factors with evidence references
-    const factors = [...(mlResult.contributingFactors || [])];
+    let factors = [];
+    if (Array.isArray(mlResult.contributingFactors)) {
+      factors = [...mlResult.contributingFactors];
+    } else if (mlResult.contributingFactors && typeof mlResult.contributingFactors === 'object') {
+      factors = Object.entries(mlResult.contributingFactors)
+        .filter(([_, score]) => typeof score === 'number' ? score > 5 : Boolean(score))
+        .map(([key, score]) => `ML Risk factor (${key}): +${score} risk points`);
+    }
     const evidenceReferences = [];
 
     // Link top evidence record for this department

@@ -64,7 +64,8 @@ exports.updateCapaStatus = async (req, res) => {
       responsiblePerson,
       verificationNotes,
       rootCauseAnalysis,
-      predictedImpact
+      predictedImpact,
+      user: req.user
     });
 
     res.json({

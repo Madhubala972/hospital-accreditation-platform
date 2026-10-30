@@ -98,7 +98,7 @@ export default function AccreditationKanban() {
       setActionModal(null);
       fetchKanban();
     } catch (err) {
-      notify(`Failed to update CAPA status: ${err.message}`, 'error');
+      notify(`Failed to update CAPA status: ${err.response?.data?.message || err.message}`, 'error');
     }
   };
 

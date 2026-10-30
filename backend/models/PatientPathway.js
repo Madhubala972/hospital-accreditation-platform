@@ -11,7 +11,7 @@ const EventItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const PatientPathwaySchema = new mongoose.Schema({
-  caseId: { type: String, required: true, trim: true, unique: true, index: true },
+  caseId: { type: String, required: true, trim: true, unique: true },
   department: { 
     type: String, 
     required: true, 
@@ -34,7 +34,6 @@ const PatientPathwaySchema = new mongoose.Schema({
 
 // Index required by architecture specification
 PatientPathwaySchema.index({ department: 1, timestamp: -1 });
-PatientPathwaySchema.index({ caseId: 1 });
 PatientPathwaySchema.index({ evidenceId: 1 });
 
 module.exports = mongoose.model('PatientPathway', PatientPathwaySchema);

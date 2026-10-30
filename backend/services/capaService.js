@@ -152,23 +152,31 @@ const capaService = {
       }
 
       // Record in StaffAuditLog
-      await StaffAuditLog.create({
-        userName: capa.responsiblePerson || 'Lead Auditor',
-        userEmail: 'auditor@hospital.org',
-        userRole: 'Auditor',
-        department: capa.department,
-        eventType: 'CAPA_VERIFICATION',
-        actionTitle: `CAPA Closed-Loop Verification Completed: ${capa.verificationStatus}`,
-        actionDetails: `CAPA for "${capa.problem}" completed. Measured improvement: ${actualImprovement}% (Predicted: ${predicted}%).`,
-        status: isEffective ? 'SUCCESS' : 'WARNING'
-      });
+      try {
+        await StaffAuditLog.create({
+          userName: payload.user?.name || capa.responsiblePerson || 'Lead Auditor',
+          userEmail: payload.user?.email || 'auditor@hospital.org',
+          userRole: payload.user?.role || 'Auditor',
+          department: capa.department,
+          eventType: 'CAPA_VERIFICATION',
+          actionTitle: `CAPA Closed-Loop Verification Completed: ${capa.verificationStatus}`,
+          actionDetails: `CAPA for "${capa.problem}" completed. Measured improvement: ${actualImprovement}% (Predicted: ${predicted}%).`,
+          status: isEffective ? 'SUCCESS' : 'WARNING'
+        });
+      } catch (logErr) {
+        console.warn(`[CapaService] StaffAuditLog notice: ${logErr.message}`);
+      }
 
       // Resolve linked alert if exists
       if (capa.alertId) {
-        await Alert.findByIdAndUpdate(capa.alertId, {
-          status: 'RESOLVED',
-          resolvedAt: new Date()
-        });
+        try {
+          await Alert.findByIdAndUpdate(capa.alertId, {
+            status: 'RESOLVED',
+            resolvedAt: new Date()
+          });
+        } catch (alErr) {
+          console.warn(`[CapaService] Alert resolution notice: ${alErr.message}`);
+        }
       }
     }
 
