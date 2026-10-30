@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { complianceApi } from '../services/api';
@@ -17,6 +18,9 @@ import {
 } from 'lucide-react';
 
 export default function AccreditationStandards() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const codeQuery = searchParams.get('code') || searchParams.get('standard');
+
   const { selectedDepartment, refreshKey, notify } = useApp();
   const { user } = useAuth();
   const isDean = user?.role === 'Dean' || user?.role === 'Admin';
@@ -80,6 +84,9 @@ export default function AccreditationStandards() {
 
   const standards = evalData?.standards || [];
   const filteredStandards = standards.filter(s => {
+    if (codeQuery && !s.standardCode?.toLowerCase().includes(codeQuery.toLowerCase())) {
+      return false;
+    }
     if (filterCategory === 'ALL') return true;
     return s.category === filterCategory;
   });
@@ -163,14 +170,35 @@ export default function AccreditationStandards() {
 
       {/* Standards List / Matrix */}
       <div className="space-y-4">
+        {codeQuery && (
+          <div className="p-3.5 bg-blue-50/90 border border-blue-200 rounded-2xl flex items-center justify-between text-xs text-blue-900 shadow-sm">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <span>
+                Filtered to standard clause: <strong className="font-mono text-blue-800 bg-white px-2 py-0.5 rounded border border-blue-200">{codeQuery}</strong>
+              </span>
+            </div>
+            <button
+              onClick={() => setSearchParams({})}
+              className="px-3 py-1 bg-white hover:bg-blue-100 rounded-lg text-blue-700 font-bold border border-blue-300 text-xs transition shadow-2xs"
+            >
+              Show All Standards
+            </button>
+          </div>
+        )}
+
         {filteredStandards.length === 0 ? (
-          <EmptyState title="No Standards in this Category" message="Select another category or add a new accreditation standard." />
+          <EmptyState title="No Standards Found" message={`No standard found matching "${codeQuery || filterCategory}".`} />
         ) : (
-          filteredStandards.map((std) => (
+          filteredStandards.map((std) => {
+            const isTargetStandard = codeQuery && std.standardCode?.toLowerCase() === codeQuery.toLowerCase();
+            return (
             <div
               key={std.standardCode}
               className={`p-5 rounded-2xl border transition shadow-sm space-y-3 ${
-                std.status === 'NON_COMPLIANT'
+                isTargetStandard
+                  ? 'ring-2 ring-blue-500 bg-blue-50/40 border-blue-400 shadow-md'
+                  : std.status === 'NON_COMPLIANT'
                   ? 'bg-rose-50/30 border-rose-200'
                   : 'bg-white border-sky-100'
               }`}
@@ -224,8 +252,8 @@ export default function AccreditationStandards() {
                 </div>
               </div>
             </div>
-          ))
-        )}
+          );
+        }))}
       </div>
 
       {/* Add Standard Modal (Dean Exclusive) */}

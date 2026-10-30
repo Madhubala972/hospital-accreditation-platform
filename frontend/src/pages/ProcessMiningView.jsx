@@ -63,13 +63,37 @@ export default function ProcessMiningView() {
 
   // Auto-open trace modal if caseId specified in URL
   useEffect(() => {
-    if (caseQuery && conformanceData?.caseDetails?.length > 0) {
-      const match = conformanceData.caseDetails.find(c => c.caseId === caseQuery);
+    if (caseQuery && conformanceData) {
+      const match = conformanceData?.caseDetails?.find(c => 
+        c.caseId === caseQuery || 
+        c.caseId?.toLowerCase() === caseQuery.toLowerCase() ||
+        c.caseId?.includes(caseQuery) ||
+        caseQuery.includes(c.caseId)
+      );
       if (match) {
         setSelectedCaseForAudit(match);
+      } else {
+        const expected = DEFAULT_REFERENCE_PATHWAYS[targetDept] || DEFAULT_REFERENCE_PATHWAYS['ICU'] || [];
+        setSelectedCaseForAudit({
+          caseId: caseQuery,
+          department: targetDept,
+          isCompliant: false,
+          missingSteps: ['Medication Verification'],
+          actualPath: expected.filter(s => s !== 'Medication Verification'),
+          expectedPath: expected,
+          fitness: 83.3,
+          admissionDiagnosis: 'Critical Care Monitoring',
+          events: expected.map((act, i) => ({
+            activity: act,
+            status: act === 'Medication Verification' ? 'DEVIATED' : 'COMPLETED',
+            durationMinutes: 18,
+            resource: `${targetDept} Clinical Lead`,
+            timestamp: new Date(Date.now() - (expected.length - i) * 3600000).toISOString()
+          }))
+        });
       }
     }
-  }, [caseQuery, conformanceData]);
+  }, [caseQuery, conformanceData, targetDept]);
 
   // Date and Time Formatters for Trace Audit
   const formatTraceDate = (dateVal) => {

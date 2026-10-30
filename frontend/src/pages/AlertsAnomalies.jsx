@@ -437,9 +437,9 @@ export default function AlertsAnomalies() {
                           detectedEvidences.map(eId => (
                             <Link
                               key={eId}
-                              to="/evidence"
+                              to={`/evidence?search=${encodeURIComponent(eId)}&id=${encodeURIComponent(eId)}&department=${encodeURIComponent(alert.department)}`}
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white hover:bg-cyan-100 text-cyan-900 font-mono font-bold text-[11px] border border-cyan-300 shadow-2xs transition"
-                              title={`Verify cryptographic seal for evidence block ${eId}`}
+                              title={`Verify cryptographic seal and inspect block ${eId} in Evidence Ledger`}
                             >
                               <span>{eId}</span>
                               <ExternalLink className="w-2.5 h-2.5 text-cyan-600" />
@@ -447,8 +447,9 @@ export default function AlertsAnomalies() {
                           ))
                         ) : (
                           <Link
-                            to="/evidence"
+                            to={`/evidence?department=${encodeURIComponent(alert.department)}`}
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-900 hover:underline"
+                            title="Inspect departmental evidence ledger"
                           >
                             <span>Inspect Ledger</span>
                             <ExternalLink className="w-2.5 h-2.5 text-cyan-600" />
@@ -467,9 +468,9 @@ export default function AlertsAnomalies() {
                       </div>
                       <div>
                         <Link
-                          to="/standards"
+                          to={`/standards?code=${encodeURIComponent(alert.standardCode || 'NABH-COP.6')}&department=${encodeURIComponent(alert.department)}`}
                           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white hover:bg-indigo-100 text-indigo-900 font-mono font-bold text-[11px] border border-indigo-300 shadow-2xs transition"
-                          title="View standard clause requirements in Accreditation Standards"
+                          title={`Inspect standard clause ${alert.standardCode || 'NABH-COP.6'} in Accreditation Standards`}
                         >
                           <span>{alert.standardCode || 'NABH-COP.6'}</span>
                           <ExternalLink className="w-2.5 h-2.5 text-indigo-600" />
@@ -488,9 +489,14 @@ export default function AlertsAnomalies() {
                         </span>
                         <span className="text-[9px] font-semibold text-emerald-600">Kanban</span>
                       </div>
-                      <div className="text-[11px] text-emerald-950 font-medium line-clamp-2" title={alert.recommendedCapa}>
-                        {alert.recommendedCapa || 'Conduct clinical protocol refresher and supervisor gate.'}
-                      </div>
+                      <Link
+                        to={`/kanban?standard=${encodeURIComponent(alert.standardCode || 'NABH-COP.6')}&alertId=${encodeURIComponent(alert._id)}&department=${encodeURIComponent(alert.department)}`}
+                        className="inline-flex items-start gap-1 text-[11px] text-emerald-950 font-medium hover:text-emerald-800 hover:underline line-clamp-2"
+                        title="Open related CAPA tasks in Kanban board"
+                      >
+                        <span>{alert.recommendedCapa || 'Conduct clinical protocol refresher and supervisor gate.'}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      </Link>
                     </div>
                   </div>
                 </div>

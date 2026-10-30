@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { capaApi } from '../services/api';
 import StatusBadge from '../components/common/StatusBadge';
@@ -29,6 +29,10 @@ const COLUMNS = [
 ];
 
 export default function AccreditationKanban() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightStandard = searchParams.get('standard') || searchParams.get('code');
+  const highlightAlertId = searchParams.get('alertId');
+
   const { selectedDepartment, refreshKey, notify } = useApp();
   const [kanban, setKanban] = useState({ OPEN: [], ASSIGNED: [], IN_PROGRESS: [], COMPLETED: [] });
   const [loading, setLoading] = useState(true);
@@ -39,12 +43,12 @@ export default function AccreditationKanban() {
   // New CAPA Form State
   const [formData, setFormData] = useState({
     problem: '',
-    department: 'ICU',
+    department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'ICU',
     action: '',
     responsiblePerson: '',
     deadline: '',
     priority: 'HIGH',
-    standardCode: 'NABH-COP.6',
+    standardCode: highlightStandard || 'NABH-COP.6',
     predictedImpact: 30.0
   });
 
@@ -133,6 +137,35 @@ export default function AccreditationKanban() {
         </button>
       </div>
 
+      {/* Target Focus Banner */}
+      {highlightStandard && (
+        <div className="p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-950 shadow-sm">
+          <div className="flex items-center gap-2">
+            <KanbanSquare className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>
+              Targeted CAPA audit for standard clause: <strong className="font-mono text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-200">{highlightStandard}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setFormData(prev => ({ ...prev, standardCode: highlightStandard }));
+                setShowModal(true);
+              }}
+              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-2xs transition"
+            >
+              + Create CAPA for {highlightStandard}
+            </button>
+            <button
+              onClick={() => setSearchParams({})}
+              className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-300 text-xs transition"
+            >
+              Clear Filter
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Kanban Board Columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
         {COLUMNS.map((col) => {
@@ -157,10 +190,18 @@ export default function AccreditationKanban() {
                     No items in this stage
                   </div>
                 ) : (
-                  items.map((item) => (
+                  items.map((item) => {
+                    const isHighlighted = (highlightStandard && item.standardCode?.toLowerCase() === highlightStandard.toLowerCase()) ||
+                      (highlightAlertId && (item.alertId === highlightAlertId || item._id === highlightAlertId));
+
+                    return (
                     <div
                       key={item._id}
-                      className="p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition shadow-sm space-y-3 group"
+                      className={`p-4 rounded-xl bg-white border transition shadow-sm space-y-3 group ${
+                        isHighlighted
+                          ? 'ring-2 ring-emerald-500 border-emerald-400 bg-emerald-50/20 shadow-md'
+                          : 'border-slate-200 hover:border-blue-300 hover:shadow-md'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
@@ -251,8 +292,8 @@ export default function AccreditationKanban() {
                         )}
                       </div>
                     </div>
-                  ))
-                )}
+                  );
+                }))}
               </div>
             </div>
           );

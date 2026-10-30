@@ -36,11 +36,12 @@ import {
 export default function EvidenceTraceability() {
   const [searchParams] = useSearchParams();
   const querySearch = searchParams.get('search');
+  const idParam = searchParams.get('id') || searchParams.get('evidenceId');
 
   const { selectedDepartment, refreshKey } = useApp();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState(querySearch ? 'SEALED_LEDGER' : 'PENDING_AUDIT'); // 'PENDING_AUDIT' | 'SEALED_LEDGER' | 'TRACE_FLOW'
+  const [activeTab, setActiveTab] = useState(querySearch || idParam ? 'SEALED_LEDGER' : 'PENDING_AUDIT'); // 'PENDING_AUDIT' | 'SEALED_LEDGER' | 'TRACE_FLOW'
   const [evidenceList, setEvidenceList] = useState([]);
   const [integrityReport, setIntegrityReport] = useState(null);
   const [standards, setStandards] = useState([]);
@@ -49,15 +50,30 @@ export default function EvidenceTraceability() {
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [sealing, setSealing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(querySearch || '');
+  const [searchQuery, setSearchQuery] = useState(querySearch || idParam || '');
   const [selectedType, setSelectedType] = useState('ALL');
 
   useEffect(() => {
-    if (querySearch) {
-      setSearchQuery(querySearch);
+    if (querySearch || idParam) {
+      setSearchQuery(querySearch || idParam);
       setActiveTab('SEALED_LEDGER');
     }
-  }, [querySearch]);
+  }, [querySearch, idParam]);
+
+  useEffect(() => {
+    if (idParam && evidenceList.length > 0) {
+      const match = evidenceList.find(e => 
+        e.evidenceId === idParam || 
+        e.evidenceId?.toLowerCase() === idParam.toLowerCase() ||
+        e.evidenceId?.includes(idParam)
+      );
+      if (match) {
+        setSelectedEvidence(match);
+        setInspectModalOpen(true);
+        setActiveTab('SEALED_LEDGER');
+      }
+    }
+  }, [idParam, evidenceList]);
 
 
   // Modals
