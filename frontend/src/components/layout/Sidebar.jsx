@@ -7,7 +7,6 @@ import {
   FilePlus2,
   Activity,
   GitFork,
-  SlidersHorizontal,
   Cpu,
   ShieldCheck,
   ShieldAlert,
@@ -27,7 +26,6 @@ const baseNavItems = [
   { name: 'Data Entry Center', path: '/data-entry', icon: FilePlus2 },
   { name: 'Operational Metrics', path: '/metrics', icon: Activity },
   { name: 'PM4Py Process Mining', path: '/process-mining', icon: GitFork },
-  { name: 'Counterfactual Analysis', path: '/counterfactual', icon: SlidersHorizontal },
   { name: 'SimPy Digital Twin', path: '/digital-twin', icon: Cpu },
   { name: 'Alerts & Anomalies', path: '/alerts', icon: AlertTriangle },
   { 
