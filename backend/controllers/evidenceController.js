@@ -114,9 +114,15 @@ exports.getEvidenceIntegrity = async (req, res) => {
 exports.getEvidenceById = async (req, res) => {
   try {
     const { id } = req.params;
-    const evidence = await AccreditationEvidence.findOne({
+    let evidence = await AccreditationEvidence.findOne({
       $or: [{ evidenceId: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }]
     }).lean();
+
+    if (!evidence && id && id.startsWith('EV-')) {
+      const { ensureCoreEvidenceSeeded } = require('../services/seedEvidenceService');
+      await ensureCoreEvidenceSeeded();
+      evidence = await AccreditationEvidence.findOne({ evidenceId: id }).lean();
+    }
 
     if (!evidence) {
       return res.status(404).json({ status: 'error', message: `Evidence record ${id} not found.` });

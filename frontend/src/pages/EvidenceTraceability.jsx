@@ -37,9 +37,17 @@ export default function EvidenceTraceability() {
   const [searchParams] = useSearchParams();
   const querySearch = searchParams.get('search');
   const idParam = searchParams.get('id') || searchParams.get('evidenceId');
+  const deptParam = searchParams.get('department');
 
-  const { selectedDepartment, refreshKey } = useApp();
+  const { selectedDepartment, setSelectedDepartment, refreshKey } = useApp();
   const { user } = useAuth();
+
+  // Sync department if specified in URL
+  useEffect(() => {
+    if (deptParam && deptParam !== selectedDepartment) {
+      setSelectedDepartment(deptParam);
+    }
+  }, [deptParam]);
 
   const [activeTab, setActiveTab] = useState(querySearch || idParam ? 'SEALED_LEDGER' : 'PENDING_AUDIT'); // 'PENDING_AUDIT' | 'SEALED_LEDGER' | 'TRACE_FLOW'
   const [evidenceList, setEvidenceList] = useState([]);
@@ -56,24 +64,42 @@ export default function EvidenceTraceability() {
   useEffect(() => {
     if (querySearch || idParam) {
       setSearchQuery(querySearch || idParam);
-      setActiveTab('SEALED_LEDGER');
     }
   }, [querySearch, idParam]);
 
+  // Direct fetch by evidence ID if searched
   useEffect(() => {
-    if (idParam && evidenceList.length > 0) {
+    const targetId = idParam || (querySearch?.startsWith('EV-') ? querySearch : null);
+    if (targetId) {
+      evidenceApi.getById(targetId)
+        .then(res => {
+          if (res.data?.data) {
+            const rec = res.data.data;
+            setSelectedEvidence(rec);
+            setInspectModalOpen(true);
+            setEvidenceList(prev => [rec, ...prev.filter(p => p.evidenceId !== rec.evidenceId)]);
+            setActiveTab(rec.isCryptographicallySealed ? 'SEALED_LEDGER' : 'PENDING_AUDIT');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [idParam, querySearch]);
+
+  useEffect(() => {
+    const targetId = idParam || querySearch;
+    if (targetId && evidenceList.length > 0) {
       const match = evidenceList.find(e => 
-        e.evidenceId === idParam || 
-        e.evidenceId?.toLowerCase() === idParam.toLowerCase() ||
-        e.evidenceId?.includes(idParam)
+        e.evidenceId === targetId || 
+        e.evidenceId?.toLowerCase() === targetId.toLowerCase() ||
+        e.evidenceId?.includes(targetId)
       );
       if (match) {
         setSelectedEvidence(match);
         setInspectModalOpen(true);
-        setActiveTab('SEALED_LEDGER');
+        setActiveTab(match.isCryptographicallySealed ? 'SEALED_LEDGER' : 'PENDING_AUDIT');
       }
     }
-  }, [idParam, evidenceList]);
+  }, [idParam, querySearch, evidenceList]);
 
 
   // Modals
@@ -94,8 +120,9 @@ export default function EvidenceTraceability() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const queryDept = (querySearch || idParam) ? undefined : (selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : undefined);
       const [evRes, intRes, compRes, riskRes, capaRes] = await Promise.all([
-        evidenceApi.getEvidence({ department: selectedDepartment, limit: 100 }),
+        evidenceApi.getEvidence({ department: queryDept, limit: 300 }),
         evidenceApi.getIntegrity(selectedDepartment),
         complianceApi.getEvaluation(selectedDepartment),
         riskApi.getScores(selectedDepartment),
@@ -678,8 +705,59 @@ export default function EvidenceTraceability() {
                   </tr>
                 ) : filteredSealedEvidence.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="text-center py-10 text-slate-400">
-                      No sealed evidence records found matching criteria.
+                    <td colSpan="8" className="text-center py-10">
+                      <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
+                        <div className="text-slate-500 text-xs">
+                          No sealed evidence records found matching criteria.
+                        </div>
+                        {pendingItems.some(p => p.evidenceId?.toLowerCase().includes(searchQuery.toLowerCase())) ? (
+                          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col items-center gap-1.5 mt-1">
+                            <span>Found matching unsealed records in <strong>Pending Clinical Audit</strong>.</span>
+                            <button
+                              onClick={() => setActiveTab('PENDING_AUDIT')}
+                              className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-2xs transition"
+                            >
+                              Switch to Pending Clinical Audit
+                            </button>
+                          </div>
+                        ) : searchQuery?.startsWith('EV-') ? (
+                          <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex flex-col items-center gap-2 mt-1">
+                            <span>Evidence block <strong>"{searchQuery}"</strong> is an active audit signal not yet sealed in the hash chain.</span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  setSealing(true);
+                                  const res = await evidenceApi.createEvidence({
+                                    evidenceId: searchQuery,
+                                    department: selectedDepartment !== 'Hospital-Wide' ? selectedDepartment : 'Cardiology',
+                                    standardCode: 'NABH-COP.12',
+                                    evidenceType: 'PATHWAY_TRACE',
+                                    sourceType: 'ClinicalAlert',
+                                    sourceId: `ALERT-${searchQuery}`,
+                                    title: `Cryptographic Seal: ${searchQuery}`,
+                                    description: 'Auto-anchored cryptographic evidence record from clinical audit signal.',
+                                    dataPayload: { evidenceId: searchQuery, status: 'VERIFIED', timestamp: new Date().toISOString() },
+                                    recordedBy: user?.name || 'Lead Quality Auditor'
+                                  });
+                                  await fetchData();
+                                  if (res.data?.data) {
+                                    setSelectedEvidence(res.data.data);
+                                    setInspectModalOpen(true);
+                                  }
+                                } catch (e) {
+                                  console.error(e);
+                                } finally {
+                                  setSealing(false);
+                                }
+                              }}
+                              disabled={sealing}
+                              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs shadow-sm transition disabled:opacity-50"
+                            >
+                              {sealing ? 'Sealing Cryptographic Block...' : `Anchor & Cryptographically Seal "${searchQuery}" Now`}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ) : (

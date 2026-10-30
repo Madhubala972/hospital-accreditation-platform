@@ -69,6 +69,8 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDB();
+    const { ensureCoreEvidenceSeeded } = require('./services/seedEvidenceService');
+    await ensureCoreEvidenceSeeded();
     app.listen(PORT, () => {
       console.log(`=======================================================`);
       console.log(`🚀 Hospital Accreditation Backend running on port ${PORT}`);
