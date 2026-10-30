@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { pathwaysApi, capaApi } from '../services/api';
@@ -43,12 +43,33 @@ export default function ProcessMiningView() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedDepartment, setSelectedDepartment, refreshKey, showNotification } = useApp();
+  const [searchParams] = useSearchParams();
+  const caseQuery = searchParams.get('case');
+  const deptQuery = searchParams.get('department');
+
   const [miningData, setMiningData] = useState(null);
   const [conformanceData, setConformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCaseFilter, setSelectedCaseFilter] = useState('ALL');
   const [selectedCaseForAudit, setSelectedCaseForAudit] = useState(null);
+
+  // Sync department from URL if specified
+  useEffect(() => {
+    if (deptQuery && deptQuery !== selectedDepartment && DEPARTMENTS.includes(deptQuery)) {
+      setSelectedDepartment(deptQuery);
+    }
+  }, [deptQuery, selectedDepartment, setSelectedDepartment]);
+
+  // Auto-open trace modal if caseId specified in URL
+  useEffect(() => {
+    if (caseQuery && conformanceData?.caseDetails?.length > 0) {
+      const match = conformanceData.caseDetails.find(c => c.caseId === caseQuery);
+      if (match) {
+        setSelectedCaseForAudit(match);
+      }
+    }
+  }, [caseQuery, conformanceData]);
 
   // Date and Time Formatters for Trace Audit
   const formatTraceDate = (dateVal) => {

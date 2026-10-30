@@ -174,12 +174,18 @@ const evidenceIntegrityService = {
           await record.save();
 
           // Raise an automated integrity Alert
+          const recordCaseId = record.metadata?.caseId || record.dataPayload?.caseId || (record.sourceId?.startsWith('CASE-') ? record.sourceId.replace('CASE-', '') : null);
           await Alert.create({
             title: `EVIDENCE INTEGRITY BREACH: ${record.evidenceId}`,
             department: record.department,
+            caseId: recordCaseId,
             severity: 'CRITICAL',
-            reason: `Cryptographic hash chain violation detected in ${record.department} for standard ${record.standardCode}.`,
+            reason: `Cryptographic hash chain violation detected in ${record.department} for standard ${record.standardCode}. Record: ${record.evidenceId}`,
             evidence: reasons,
+            supportingEvidenceIds: [record.evidenceId],
+            evidenceCount: 1,
+            riskContribution: 25,
+            recommendedCapa: `Audit electronic signatures and re-verify tamper-evident cryptographic block ${record.evidenceId}.`,
             status: 'OPEN',
             source: 'COMPLIANCE_ENGINE',
             standardCode: record.standardCode

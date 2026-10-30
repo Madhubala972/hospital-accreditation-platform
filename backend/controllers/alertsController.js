@@ -16,10 +16,40 @@ exports.getAlerts = async (req, res) => {
       .limit(Number(limit))
       .lean();
 
+    // Auto-enrich any legacy alerts missing caseId or supportingEvidenceIds
+    const enriched = alerts.map(a => {
+      let finalCaseId = a.caseId || a.metadata?.caseId;
+      if (!finalCaseId) {
+        const text = [a.title, a.reason, ...(a.evidence || [])].join(' ');
+        const match = text.match(/(?:Case[s]?(?:\s+Identifier)?(?:\s*[:#]\s*|\s+))([A-Z0-9\-_]+)/i);
+        if (match && match[1]) {
+          finalCaseId = match[1];
+        }
+      }
+
+      let evIds = Array.isArray(a.supportingEvidenceIds) && a.supportingEvidenceIds.length > 0 
+        ? a.supportingEvidenceIds 
+        : [];
+      if (evIds.length === 0) {
+        const text = [a.title, a.reason, ...(a.evidence || [])].join(' ');
+        const matches = text.match(/EV-[A-Z0-9\-_]+/ig);
+        if (matches) {
+          evIds = Array.from(new Set(matches));
+        }
+      }
+
+      return {
+        ...a,
+        caseId: finalCaseId || null,
+        supportingEvidenceIds: evIds,
+        evidenceCount: evIds.length || a.evidenceCount || 1
+      };
+    });
+
     res.json({
       status: 'success',
-      count: alerts.length,
-      data: alerts
+      count: enriched.length,
+      data: enriched
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message });

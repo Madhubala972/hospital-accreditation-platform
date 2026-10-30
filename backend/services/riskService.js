@@ -245,12 +245,25 @@ const riskService = {
       });
 
       if (!existingAlert) {
+        const firstDevTrace = conformanceResult?.deviatingTraces?.[0]?.caseId ||
+          conformanceResult?.caseDetails?.find(c => !c.conforms)?.caseId || null;
+        
+        const extractedCaseMatch = factors.join(' ').match(/Cases?:\s*([A-Za-z0-9\-_]+)/i);
+        const primaryCaseId = firstDevTrace || (extractedCaseMatch ? extractedCaseMatch[1] : null);
+
+        const supportingEvidenceIds = evidenceReferences.map(r => r.evidenceId).filter(Boolean);
+
         await Alert.create({
           title: alertTitle,
           department: targetDept,
+          caseId: primaryCaseId,
           severity: finalCategory === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
           reason: factors[0] || 'Operational risk indicators exceeded tolerance threshold',
           evidence: allEvidence.slice(0, 5),
+          supportingEvidenceIds: supportingEvidenceIds.length > 0 ? supportingEvidenceIds : (topEvidenceId ? [topEvidenceId] : []),
+          evidenceCount: supportingEvidenceIds.length || 1,
+          riskContribution: finalCategory === 'CRITICAL' ? 30 : 20,
+          recommendedCapa: compEval.standards.find(s => s.status === 'NON_COMPLIANT')?.capaRecommendation || 'Initiate departmental CAPA investigation and clinical protocol audit.',
           status: 'OPEN',
           source: flaggedDeptEvidence > 0 ? 'COMPLIANCE_ENGINE' : (anomalyResult.isAnomalous ? 'ANOMALY_DETECTOR' : 'COMPLIANCE_ENGINE'),
           standardCode: compEval.standards.find(s => s.status === 'NON_COMPLIANT')?.standardCode || 'NABH-COP.6'
