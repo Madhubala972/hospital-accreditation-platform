@@ -31,6 +31,14 @@ exports.getStandards = async (req, res) => {
 
 exports.createStandard = async (req, res) => {
   try {
+    const userRole = req.user?.role;
+    if (userRole !== 'Dean' && userRole !== 'Admin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Access Denied: Creating or modifying accreditation standards is restricted exclusively to the Dean.'
+      });
+    }
+
     const {
       standardCode,
       standardName,
@@ -69,6 +77,23 @@ exports.createStandard = async (req, res) => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+
+    const StaffAuditLog = require('../models/StaffAuditLog');
+    try {
+      await StaffAuditLog.create({
+        userId: req.user?.id || req.user?._id || null,
+        userName: req.user?.name || 'Dean Dr. Arthur Vance',
+        userEmail: req.user?.email || 'dean@hospital.org',
+        userRole: req.user?.role || 'Dean',
+        department: department || 'Hospital-Wide',
+        eventType: 'STANDARDS_UPDATE',
+        actionTitle: `Accreditation Standard Configured: ${standardCode}`,
+        actionDetails: `Dean configured standard rule "${standardName}" (${standardCode}) for ${department} with threshold ${operator || '>='} ${threshold}.`,
+        status: 'SUCCESS'
+      });
+    } catch (logErr) {
+      console.warn(`[ComplianceController] StaffAuditLog notice: ${logErr.message}`);
+    }
 
     res.status(201).json({
       status: 'success',

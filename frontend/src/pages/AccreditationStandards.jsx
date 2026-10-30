@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { complianceApi } from '../services/api';
 import StatusBadge from '../components/common/StatusBadge';
 import { EmptyState, ErrorState } from '../components/common/StateViews';
@@ -17,6 +18,8 @@ import {
 
 export default function AccreditationStandards() {
   const { selectedDepartment, refreshKey, notify } = useApp();
+  const { user } = useAuth();
+  const isDean = user?.role === 'Dean' || user?.role === 'Admin';
   const [evalData, setEvalData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,6 +59,11 @@ export default function AccreditationStandards() {
 
   const handleCreateStandard = async (e) => {
     e.preventDefault();
+    if (!isDean) {
+      notify('Access Denied: Standard rules can only be created or modified by the Dean.', 'error');
+      setShowModal(false);
+      return;
+    }
     try {
       await complianceApi.createStandard(formData);
       notify(`Accreditation standard ${formData.standardCode} saved successfully.`, 'success');
@@ -97,13 +105,20 @@ export default function AccreditationStandards() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition self-start md:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Standard Rule</span>
-          </button>
+          {isDean ? (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition self-start md:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Standard Rule</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-medium self-start md:self-auto shadow-xs">
+              <ShieldAlert className="w-4 h-4 text-slate-400" />
+              <span>Standards configuration restricted to Dean</span>
+            </div>
+          )}
         </div>
 
         {/* Status Score Strip */}
@@ -213,8 +228,8 @@ export default function AccreditationStandards() {
         )}
       </div>
 
-      {/* Add Standard Modal */}
-      {showModal && (
+      {/* Add Standard Modal (Dean Exclusive) */}
+      {showModal && isDean && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">

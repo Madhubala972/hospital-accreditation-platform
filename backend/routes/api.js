@@ -66,7 +66,7 @@ router.get('/pathways/conformance', pathwaysController.getConformance);
 // Compliance Endpoints
 router.get('/compliance', complianceController.getComplianceEvaluation);
 router.get('/compliance/standards', complianceController.getStandards);
-router.post('/compliance/standards', complianceController.createStandard);
+router.post('/compliance/standards', authMiddleware, complianceController.createStandard);
 
 // Risk Endpoints
 router.get('/risk', riskController.getRiskScores);
