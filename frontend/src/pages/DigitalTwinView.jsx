@@ -46,11 +46,11 @@ export default function DigitalTwinView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const runSim = async () => {
+  const runSim = async (params = simParams) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await simulationApi.runDigitalTwin(simParams);
+      const res = await simulationApi.runDigitalTwin(params);
       setSimData(res.data);
     } catch (err) {
       setError(err.response?.data?.message || err.message);
@@ -60,8 +60,11 @@ export default function DigitalTwinView() {
   };
 
   useEffect(() => {
-    runSim();
-  }, []);
+    const timer = setTimeout(() => {
+      runSim(simParams);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [simParams]);
 
   const handleResetDefaults = () => {
     setSimParams({
@@ -300,8 +303,9 @@ export default function DigitalTwinView() {
               </div>
             </>
           ) : (
-            <div className="h-64 flex items-center justify-center text-slate-400 text-xs">
-              Initializing simulation model...
+            <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs gap-3 bg-white border border-sky-100 rounded-2xl shadow-sm">
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span>Simulating discrete-event operational model...</span>
             </div>
           )}
         </div>
